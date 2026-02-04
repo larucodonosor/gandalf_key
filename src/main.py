@@ -1,17 +1,35 @@
-from src.scanner import mapear_carpeta  # Importamos tu "habilidad"
+import json
+import os
+from src.scanner import mapear_carpeta
 
 
 def ejecutar_gandalf():
-    print("--- 🧙‍♂️ gandalfKey: Vigilancia Iniciada ---")
+    ruta = "./"
+    archivo_memoria = "estado_base.json"
 
-    ruta_a_vigilar = "./"  # Vigila la carpeta actual del proyecto
+    # 1. Escaneo actual
+    estado_actual = mapear_carpeta(ruta)
 
-    # 1. Escaneamos la carpeta
-    resultado = mapear_carpeta(ruta_a_vigilar)
+    # 2. Intentar cargar la memoria del pasado
+    if not os.path.exists(archivo_memoria):
+        # Si NO existe, guardamos la primera "foto" y salimos
+        with open(archivo_memoria, "w") as f:
+            json.dump(estado_actual, f)
+        print("📸 Primera firma guardada. Sistema listo.")
+        return
 
-    # 2. Mostramos lo que Gandalf ha visto
-    for archivo, huella in resultado.items():
-        print(f"Vigilando: {archivo} | Hash: {huella[:10]}...")  # Solo mostramos 10 caracteres del hash
+    # 3. Si existe, leemos y comparamos
+    with open(archivo_memoria, "r") as f:
+        memoria_pasada = json.load(f)
+
+    # 4. El Gran Comparador (Tu lógica de seguridad)
+    for archivo, hash_actual in estado_actual.items():
+        if archivo not in memoria_pasada:
+            print(f"🆕 NUEVO ARCHIVO DETECTADO: {archivo}")
+        elif hash_actual != memoria_pasada[archivo]:
+            print(f"🚨 ALERTA: {archivo} HA SIDO MODIFICADO!")
+        else:
+            print(f"✅ {archivo}: OK")
 
 
 if __name__ == "__main__":
