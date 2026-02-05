@@ -1,7 +1,16 @@
 import json
 import os
 from src.scanner import mapear_carpeta
+from datetime import datetime
 
+
+def registrar_log(mensaje):
+    fecha_hora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    linea = f"[{fecha_hora}] {mensaje}\n"
+
+    # Asegúrate de que la carpeta logs existe o créala
+    with open("logs/historial.log", "a", encoding="utf-8") as archivo:
+        archivo.write(linea)
 
 def ejecutar_gandalf():
     ruta = "./"
@@ -28,6 +37,7 @@ def ejecutar_gandalf():
             print(f"🆕 NUEVO ARCHIVO DETECTADO: {archivo}")
         elif hash_actual != memoria_pasada[archivo]:
             print(f"🚨 ALERTA: {archivo} HA SIDO MODIFICADO!")
+            registrar_log(f'Modificación detectada en: {archivo}')
         else:
             print(f"✅ {archivo}: OK")
 
