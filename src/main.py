@@ -32,10 +32,11 @@ def ejecutar_gandalf():
         memoria_pasada = json.load(f)
 
     # 4. El Gran Comparador (Tu lógica de seguridad)
-    for archivo, hash_actual in estado_actual.items():
+    for archivo, datos_actuales in estado_actual.items():
         if archivo not in memoria_pasada:
             print(f"🆕 NUEVO ARCHIVO DETECTADO: {archivo}")
-        elif hash_actual != memoria_pasada[archivo]:
+        elif (datos_actuales["hash"] != memoria_pasada[archivo]["hash"]) or \
+         (datos_actuales["tamano"] != memoria_pasada[archivo]["tamano"]):
             print(f"🚨 ALERTA: {archivo} HA SIDO MODIFICADO!")
             registrar_log(f'Modificación detectada en: {archivo}')
         else:
