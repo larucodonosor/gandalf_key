@@ -16,8 +16,12 @@ def generar_huella(ruta_archivo):
 def mapear_carpeta(ruta_directorio):
     """Escanea una carpeta y devuelve un diccionario {archivo: hash}."""
     registro = {}
+    BLACKLIST = [".git", ".idea", "__pycache__", "venv", "estado_base.json", "logs"]
     # Listamos todo lo que hay en la carpeta
     for nombre_archivo in os.listdir(ruta_directorio):
+        # Aplicamos filtro para excluir ciertos archivos
+        if (nombre_archivo in BLACKLIST) or nombre_archivo.startswith('.'):
+            continue  # Salta al siguiente archivo
         # Creamos la ruta completa (ej: "mis_docs" + "nota.txt" = "mis_docs/nota.txt")
         ruta_completa = os.path.join(ruta_directorio, nombre_archivo)
 
