@@ -13,13 +13,21 @@ def registrar_log(mensaje):
         archivo.write(linea)
 
 def ejecutar_gandalf():
-    ruta = "./"
+    ruta = ["./", "./src"]
     archivo_memoria = "estado_base.json"
 
     # 1. Escaneo actual
-    estado_actual = mapear_carpeta(ruta)
+    estado_actual = {}
 
-    # 2. Intentar cargar la memoria del pasado
+    # 2. Recorremos cada ruta de nuestra lista
+    for r in ruta:
+        # Escaneamos UNA carpeta y guardamos el resultado temporalmente
+        resultado_carpeta = mapear_carpeta(r)
+
+        # Mezclamos lo que acabamos de encontrar con nuestro diccionario general
+        estado_actual.update(resultado_carpeta)
+
+    # 3. Intentar cargar la memoria del pasado
     if not os.path.exists(archivo_memoria):
         # Si NO existe, guardamos la primera "foto" y salimos
         with open(archivo_memoria, "w") as f:
@@ -27,11 +35,11 @@ def ejecutar_gandalf():
         print("📸 Primera firma guardada. Sistema listo.")
         return
 
-    # 3. Si existe, leemos y comparamos
+    # 4. Si existe, leemos y comparamos
     with open(archivo_memoria, "r") as f:
         memoria_pasada = json.load(f)
 
-    # 4. El Gran Comparador (Tu lógica de seguridad)
+    # 5. El Gran Comparador (Tu lógica de seguridad)
     for archivo, datos_actuales in estado_actual.items():
         if archivo not in memoria_pasada:
             print(f"🆕 NUEVO ARCHIVO DETECTADO: {archivo}")
