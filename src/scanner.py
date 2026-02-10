@@ -27,11 +27,13 @@ def mapear_carpeta(ruta_directorio):
 
         # Solo procesamos si es un archivo (ignoramos subcarpetas por ahora)
         if os.path.isfile(ruta_completa):
+            dni_archivo = os.path.abspath(ruta_completa)
+
             huella = generar_huella(ruta_completa)
             if huella: # Solo lo añadimos si se pudo leer correctamente
                 # 1. Calculamos el tamaño
                 tamano = os.path.getsize(ruta_completa)
-                registro[nombre_archivo] = {
+                registro[dni_archivo] = {
                     'hash': huella,
                     'tamano': tamano
                 }
