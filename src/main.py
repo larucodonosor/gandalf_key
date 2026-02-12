@@ -50,8 +50,14 @@ def ejecutar_gandalf():
         if archivo not in memoria_pasada:
             cont_nuevos += 1
             print(f"🆕 NUEVO ARCHIVO DETECTADO: {archivo}")
-        elif (datos_actuales["hash"] != memoria_pasada[archivo]["hash"]) or \
-         (datos_actuales["tamano"] != memoria_pasada[archivo]["tamano"]):
+        elif (datos_actuales["tamano"] == memoria_pasada[archivo]["tamano"]) and \
+             (datos_actuales["modificado"] == memoria_pasada[archivo]["modificado"]):
+            cont_ok += 1
+            # Si coinciden, ni siquiera comparamos el HASH. ¡Ahorramos CPU!
+            print(f"✅ {os.path.basename(archivo)}: OK (Rápido)")
+
+        #Si lo anterior falla, miramos el HASH para confirmar
+        elif datos_actuales["hash"] != memoria_pasada[archivo]["hash"]:
             cont_alertas += 1
             print(f"🚨 ALERTA: {archivo} HA SIDO MODIFICADO!")
 
