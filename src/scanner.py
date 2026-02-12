@@ -27,15 +27,17 @@ def mapear_carpeta(ruta_directorio):
 
         # Solo procesamos si es un archivo (ignoramos subcarpetas por ahora)
         if os.path.isfile(ruta_completa):
-            dni_archivo = os.path.abspath(ruta_completa)
-
+            stats = os.stat(ruta_completa)  # Sacamos los rayos X una sola vez
+            ruta_dni = os.path.abspath(ruta_completa)
             huella = generar_huella(ruta_completa)
             if huella: # Solo lo añadimos si se pudo leer correctamente
                 # 1. Calculamos el tamaño
                 tamano = os.path.getsize(ruta_completa)
-                registro[dni_archivo] = {
+                registro[ruta_dni] = {
+
                     'hash': huella,
-                    'tamano': tamano
+                    'tamano': tamano,
+                    'modificado': stats.st_mtime #Guardamos la fecha e formato máquina
                 }
 
     return registro
