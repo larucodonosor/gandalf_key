@@ -34,6 +34,7 @@ def mapear_carpeta(ruta_directorio):
                 # 1. Calculamos el tamaño
                 tamano = os.path.getsize(ruta_completa)
                 registro[ruta_dni] = {
+
                     'hash': huella,
                     'tamano': tamano,
                     'modificado': stats.st_mtime #Guardamos la fecha e formato máquina
