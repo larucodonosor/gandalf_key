@@ -77,6 +77,14 @@ def ejecutar_gandalf():
             cont_ok += 1
             print(f"✅ {archivo}: OK")
 
+
+    # 5.b Segundo Comparador: Detectar archivos borrados
+    for archivo_viejo in memoria_pasada:
+        if archivo_viejo not in estado_actual:
+            cont_alertas += 1
+            print(f"💀 ¡ALERTA! Archivo ELIMINADO: {archivo_viejo}")
+            registrar_log(f"Archivo desaparecido: {archivo_viejo}")
+
     # --- NUEVO REPORTE FINAL ---
     print("-" * 30)
     print(f"📊 RESUMEN DEL ESCÁNER:")
@@ -84,7 +92,6 @@ def ejecutar_gandalf():
     print(f"🆕 Nuevos:    {cont_nuevos}")
     print(f"🚨 Alertas:   {cont_alertas}")
     print("-" * 30)
-
     # 6. Actualizamos la memoria para la próxima vez
     with open(archivo_memoria, "w") as f:
         json.dump(estado_actual, f, indent=4)  # El indent=4 lo hace legible
