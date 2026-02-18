@@ -1,9 +1,12 @@
 import json
 import os
 import shutil
+import time
 from src.scanner import mapear_carpeta
 from datetime import datetime
 
+
+TIEMPO_ESPERA = 10
 
 def registrar_log(mensaje):
     fecha_hora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -99,4 +102,7 @@ def ejecutar_gandalf():
         print("\n💾 Memoria actualizada.")
 
 if __name__ == "__main__":
-    ejecutar_gandalf()
+    while True:
+        ejecutar_gandalf()
+        print("\n[💤] Gandalf está descansando... Próximo escaneo en 10 segundos.")
+        time.sleep(TIEMPO_ESPERA)  # El programa se "congela" aquí 10 segundosutar_gandalf()
