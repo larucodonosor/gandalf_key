@@ -8,9 +8,16 @@ from datetime import datetime
 
 TIEMPO_ESPERA = 10
 
+def ofuscar_mensaje(texto, clave=13):
+    resultado = ""
+    for letra in texto:
+        resultado += chr(ord(letra) ^ clave)
+    return resultado
+
 def registrar_log(mensaje):
     fecha_hora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    linea = f"[{fecha_hora}] {mensaje}\n"
+    mensaje_secreto = ofuscar_mensaje(mensaje, 13)
+    linea = f"[{fecha_hora}] {mensaje_secreto}\n"
 
     # Asegúrate de que la carpeta logs existe o créala
     with open("logs/historial.log", "a", encoding="utf-8") as archivo:
@@ -44,49 +51,53 @@ def ejecutar_gandalf():
         print("📸 Primera firma guardada. Sistema listo.")
         return
 
-    # 4. Si existe, leemos y comparamos
-    with open(archivo_memoria, "r") as f:
-        memoria_pasada = json.load(f)
-
     # 5. El Gran Comparador (Tu lógica de seguridad)
-    for archivo, datos_actuales in estado_actual.items():
-        if archivo not in memoria_pasada:
-            cont_nuevos += 1
-            print(f"🆕 NUEVO ARCHIVO DETECTADO: {archivo}")
-        elif (datos_actuales["tamano"] == memoria_pasada[archivo]["tamano"]) and \
+    try:
+    # 5.1. Si existe, leemos y comparamos
+        with open(archivo_memoria, "r") as f:
+            memoria_pasada = json.load(f)
+        for archivo, datos_actuales in estado_actual.items():
+            if archivo not in memoria_pasada:
+                cont_nuevos += 1
+                print(f"🆕 NUEVO ARCHIVO DETECTADO: {archivo}")
+            elif (datos_actuales["tamano"] == memoria_pasada[archivo]["tamano"]) and \
              (datos_actuales["modificado"] == memoria_pasada[archivo]["modificado"]):
-            cont_ok += 1
-            # Si coinciden, ni siquiera comparamos el HASH. ¡Ahorramos CPU!
-            print(f"✅ {os.path.basename(archivo)}: OK (Rápido)")
+                cont_ok += 1
+                # Si coinciden, ni siquiera comparamos el HASH. ¡Ahorramos CPU!
+                print(f"✅ {os.path.basename(archivo)}: OK (Rápido)")
 
-        #Si lo anterior falla, miramos el HASH para confirmar
-        elif datos_actuales["hash"] != memoria_pasada[archivo]["hash"]:
-            cont_alertas += 1
-            print(f"🚨 ALERTA: {archivo} HA SIDO MODIFICADO!")
+            #Si lo anterior falla, miramos el HASH para confirmar
+            elif datos_actuales["hash"] != memoria_pasada[archivo]["hash"]:
+                cont_alertas += 1
+                print(f"🚨 ALERTA: {archivo} HA SIDO MODIFICADO!")
 
-            # 1. Creamos la carpeta de seguridad si no existe
-            os.makedirs('quarantine', exist_ok=True)
+                # 1. Creamos la carpeta de seguridad si no existe
+                os.makedirs('quarantine', exist_ok=True)
 
-            # 2. Preparamos el nombre del archivo de "evidencia"
-            # Usamos basename para sacar solo el nombre (ej: "main.py") sin toda la ruta C:/...
-            nombre_base = os.path.basename(archivo)
-            ruta_destino = os.path.join("quarantine", f"MODIFICADO_{nombre_base}")
+                # 2. Preparamos el nombre del archivo de "evidencia"
+                # Usamos basename para sacar solo el nombre (ej: "main.py") sin toda la ruta C:/...
+                nombre_base = os.path.basename(archivo)
+                clave_secreta = 4 << 3
+                nombre_disfrazado = ofuscar_mensaje(nombre_base, clave_secreta)
+                ruta_destino = os.path.join("quarantine", f"MODIFICADO_{nombre_disfrazado}")
 
-            # 3. ¡A CUARENTENA! Copiamos el archivo físico
-            shutil.copy(archivo, ruta_destino)
+                # 3. ¡A CUARENTENA! Copiamos el archivo físico
+                shutil.copy(archivo, ruta_destino)
 
-            registrar_log(f'Modificación detectada en: {archivo}')
-        else:
-            cont_ok += 1
+                registrar_log(f'Modificación detectada en: {archivo}')
+            else:
+                    cont_ok += 1
             print(f"✅ {archivo}: OK")
 
-
-    # 5.b Segundo Comparador: Detectar archivos borrados
-    for archivo_viejo in memoria_pasada:
-        if archivo_viejo not in estado_actual:
-            cont_alertas += 1
-            print(f"💀 ¡ALERTA! Archivo ELIMINADO: {archivo_viejo}")
-            registrar_log(f"Archivo desaparecido: {archivo_viejo}")
+        # 5.2 Segundo Comparador: Detectar archivos borrados
+        for archivo_viejo in memoria_pasada:
+            if archivo_viejo not in estado_actual:
+                cont_alertas += 1
+                print(f"💀 ¡ALERTA! Archivo ELIMINADO: {archivo_viejo}")
+                registrar_log(f"Archivo desaparecido: {archivo_viejo}")
+    except Exception as e:
+        print(f"🕵️‍♂️ Gandalf detectó una perturbación en la Fuerza: {e}")
+        registrar_log(f"Error en el escaneo: {e}")
 
     # --- NUEVO REPORTE FINAL ---
     print("-" * 30)
@@ -105,4 +116,4 @@ if __name__ == "__main__":
     while True:
         ejecutar_gandalf()
         print("\n[💤] Gandalf está descansando... Próximo escaneo en 10 segundos.")
-        time.sleep(TIEMPO_ESPERA)  # El programa se "congela" aquí 10 segundosutar_gandalf()
+        time.sleep(TIEMPO_ESPERA)  # El programa se "congela" aquí 10 segundos ejecutar_gandalf()
