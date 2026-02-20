@@ -1,18 +1,38 @@
 import json
 import os
+import requests
 import shutil
 import time
-from src.scanner import mapear_carpeta
+from scanner import mapear_carpeta
 from datetime import datetime
 
 
-TIEMPO_ESPERA = 10
+TIEMPO_ESPERA = 30
 
 def ofuscar_mensaje(texto, clave=13):
     resultado = ""
     for letra in texto:
         resultado += chr(ord(letra) ^ clave)
     return resultado
+
+def gritar_al_mundo(mensaje):
+    url = " https://httpbin.org/post"
+    # Ofuscamos el grito para que nadie lo lea por el camino
+    mensaje_secreto = ofuscar_mensaje(mensaje, 32)
+    datos = {"alerta": mensaje_secreto, "emisor": "Gandalf"}
+
+    try:
+        print(f"Enviando alerta: {mensaje}...")
+        respuesta = requests.post(url, json=datos, timeout=10)
+        print(f"Estado recibido: {respuesta.status_code}")
+
+        if respuesta.status_code == 200:
+            print("🌐 ¡Conexión exitosa!")
+            print("Servidor recibió:", respuesta.json()["json"])
+        else:
+            print(f"❌ Error en el servidor: {respuesta.status_code}")
+    except Exception as e:
+        print(f"📡 Error de red: {e}")
 
 def registrar_log(mensaje):
     fecha_hora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -77,14 +97,19 @@ def ejecutar_gandalf():
                 # 2. Preparamos el nombre del archivo de "evidencia"
                 # Usamos basename para sacar solo el nombre (ej: "main.py") sin toda la ruta C:/...
                 nombre_base = os.path.basename(archivo)
+                partes = nombre_base.rsplit(".", 1)
+                nombre_sin_ext = partes[0]
+                extension = partes[1] if len(partes) > 1 else ""
                 clave_secreta = 4 << 3
-                nombre_disfrazado = ofuscar_mensaje(nombre_base, clave_secreta)
-                ruta_destino = os.path.join("quarantine", f"MODIFICADO_{nombre_disfrazado}")
+                nombre_disfrazado = ofuscar_mensaje(nombre_sin_ext, clave_secreta)
+                nombre_final = f"MOD_{nombre_disfrazado}.{extension}"
+                ruta_destino = os.path.join("quarantine", f"MODIFICADO_{nombre_final}")
 
                 # 3. ¡A CUARENTENA! Copiamos el archivo físico
                 shutil.copy(archivo, ruta_destino)
 
                 registrar_log(f'Modificación detectada en: {archivo}')
+                gritar_al_mundo(f"¡INTRUSO! El archivo {nombre_base} ha sido alterado.")
             else:
                     cont_ok += 1
             print(f"✅ {archivo}: OK")
@@ -115,5 +140,5 @@ def ejecutar_gandalf():
 if __name__ == "__main__":
     while True:
         ejecutar_gandalf()
-        print("\n[💤] Gandalf está descansando... Próximo escaneo en 10 segundos.")
-        time.sleep(TIEMPO_ESPERA)  # El programa se "congela" aquí 10 segundos ejecutar_gandalf()
+        print("\n[💤] Gandalf está descansando... Próximo escaneo en 30 segundos.")
+        time.sleep(TIEMPO_ESPERA)  # El programa se "congela" aquí 30 segundos ejecutar_gandalf()
