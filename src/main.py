@@ -46,6 +46,8 @@ def registrar_log(mensaje):
 def ejecutar_gandalf():
     ruta = ["./", "./src"]
     archivo_memoria = "estado_base.json"
+    EXTENSIONES_IGNORAR = [".log", ".tmp", ".json"]
+    ARCHIVOS_IGNORAR = ["config.ini"]
 
     # ... rutas, memoria ...
     cont_ok = 0
@@ -63,11 +65,28 @@ def ejecutar_gandalf():
         # Mezclamos lo que acabamos de encontrar con nuestro diccionario general
         estado_actual.update(resultado_carpeta)
 
+        # Aplicamos el filtrado de archivos
+        estado_filtrado = {}
+        for archivo, datos in estado_actual.items():
+            es_ignorado = False
+
+          # Comprobamos si termina en alguna extensión prohibida
+            for ext in EXTENSIONES_IGNORAR:
+                if archivo.endswith(ext):
+                    es_ignorado = True
+
+          # Comprobamos si el nombre exacto está en la lista negra
+            if os.path.basename(archivo) in ARCHIVOS_IGNORAR:
+                es_ignorado = True
+
+            if not es_ignorado:
+                estado_filtrado[archivo] = datos
+
     # 3. Intentar cargar la memoria del pasado
     if not os.path.exists(archivo_memoria):
         # Si NO existe, guardamos la primera "foto" y salimos
         with open(archivo_memoria, "w") as f:
-            json.dump(estado_actual, f)
+            json.dump(estado_filtrado, f)
         print("📸 Primera firma guardada. Sistema listo.")
         return
 
@@ -76,7 +95,7 @@ def ejecutar_gandalf():
     # 5.1. Si existe, leemos y comparamos
         with open(archivo_memoria, "r") as f:
             memoria_pasada = json.load(f)
-        for archivo, datos_actuales in estado_actual.items():
+        for archivo, datos_actuales in estado_filtrado.items():
             if archivo not in memoria_pasada:
                 cont_nuevos += 1
                 print(f"🆕 NUEVO ARCHIVO DETECTADO: {archivo}")
@@ -116,7 +135,7 @@ def ejecutar_gandalf():
 
         # 5.2 Segundo Comparador: Detectar archivos borrados
         for archivo_viejo in memoria_pasada:
-            if archivo_viejo not in estado_actual:
+            if archivo_viejo not in estado_filtrado:
                 cont_alertas += 1
                 print(f"💀 ¡ALERTA! Archivo ELIMINADO: {archivo_viejo}")
                 registrar_log(f"Archivo desaparecido: {archivo_viejo}")
@@ -133,7 +152,7 @@ def ejecutar_gandalf():
     print("-" * 30)
     # 6. Actualizamos la memoria para la próxima vez
     with open(archivo_memoria, "w") as f:
-        json.dump(estado_actual, f, indent=4)  # El indent=4 lo hace legible
+        json.dump(estado_filtrado, f, indent=4)  # El indent=4 lo hace legible
 
         print("\n💾 Memoria actualizada.")
 
