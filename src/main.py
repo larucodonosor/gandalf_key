@@ -3,7 +3,7 @@ import os
 import requests
 import shutil
 import time
-from scanner import mapear_carpeta
+from scanner import mapear_carpeta, validar_adn
 from datetime import datetime
 
 
@@ -99,11 +99,29 @@ def ejecutar_gandalf():
             if archivo not in memoria_pasada:
                 cont_nuevos += 1
                 print(f"🆕 NUEVO ARCHIVO DETECTADO: {archivo}")
+                #Pasar por rayos X
+                es_seguro, mensaje_adn = validar_adn(archivo)
+
+                if not es_seguro:
+                    print(f'🚨 {mensaje_adn}')
+                    registrar_log(mensaje_adn)
+                    gritar_al_mundo(f'BLOQUEO DE EMERGENCIA: {archivo} por camuflaje de ADN')
+
+                #BLOQUEO: Lo movemos a cuarentena y lo borramos del sitio original
+                    os.makedirs('quarantine', exist_ok=True)
+                    destino_bloqueo = os.path.join("quarantine", f"BLOQUEADO_{os.path.basename(archivo)}")
+                    shutil.move(archivo, destino_bloqueo)  # 'move' lo quita de donde estaba
+                    print(f"🔒 Archivo neutralizado y movido a cuarentena.")
+
+                    continue
+                else:
+                    print(f"✅ ADN Verificado para {os.path.basename(archivo)}")
             elif (datos_actuales["tamano"] == memoria_pasada[archivo]["tamano"]) and \
              (datos_actuales["modificado"] == memoria_pasada[archivo]["modificado"]):
                 cont_ok += 1
                 # Si coinciden, ni siquiera comparamos el HASH. ¡Ahorramos CPU!
                 print(f"✅ {os.path.basename(archivo)}: OK (Rápido)")
+                continue
 
             #Si lo anterior falla, miramos el HASH para confirmar
             elif datos_actuales["hash"] != memoria_pasada[archivo]["hash"]:
