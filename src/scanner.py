@@ -41,3 +41,28 @@ def mapear_carpeta(ruta_directorio):
                 }
 
     return registro
+
+def validar_adn(ruta):
+    # Diccionario de firmas conocidas (Magic Numbers)
+    FIRMAS = {
+        b"\x89PNG": ".png",
+        b"\xff\xd8\xff": ".jpg",
+        b"%PDF": ".pdf",
+        b"MZ": ".exe"
+     }
+
+    try:
+        nombre_archivo = os.path.basename(ruta)
+        extension_declarada = os.path.splitext(nombre_archivo)[1].lower()
+        with open(ruta, "rb") as f:
+            inicio = f.read(4) # Leemos el encabezado
+
+        # Comprobamos si el inicio coincide con alguna firma
+        for firma, ext_real in FIRMAS.items():
+            if inicio.startswith(firma):
+                if extension_declarada != ext_real:
+                    return False, f"¡CAMUFLAJE! ADN de {ext_real} oculto en {extension_declarada}"
+
+        return True, "ADN correcto"
+    except Exception as e:
+         return True, f"No se pudo analizar:{e}"
