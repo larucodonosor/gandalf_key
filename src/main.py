@@ -118,15 +118,24 @@ def ejecutar_gandalf():
                     print(f"✅ ADN Verificado para {os.path.basename(archivo)}")
             elif (datos_actuales["tamano"] == memoria_pasada[archivo]["tamano"]) and \
              (datos_actuales["modificado"] == memoria_pasada[archivo]["modificado"]):
-                cont_ok += 1
-                # Si coinciden, ni siquiera comparamos el HASH. ¡Ahorramos CPU!
-                print(f"✅ {os.path.basename(archivo)}: OK (Rápido)")
-                continue
+
+                # CHEQUEO DE ADN SECRETO
+
+                if datos_actuales["adn_muestra"] != memoria_pasada[archivo].get("adn_muestra"):
+                    cont_alertas += 1
+                    print(f"🚨 ¡ALERTA DE SUPLANTACIÓN! El ADN en la posición secreta ha cambiado en {archivo}")
+                  # Aquí dispararíamos la cuarentena...
+                else:
+                    cont_ok += 1
+                    print(f"✅ {os.path.basename(archivo)}: OK (ADN Verificado)")
+                    continue
 
             #Si lo anterior falla, miramos el HASH para confirmar
             elif datos_actuales["hash"] != memoria_pasada[archivo]["hash"]:
                 cont_alertas += 1
                 print(f"🚨 ALERTA: {archivo} HA SIDO MODIFICADO!")
+                registrar_log(f"Suplantación de ADN detectada: {archivo}")
+                gritar_al_mundo(f"¡CIRUGÍA ILEGAL! El archivo {os.path.basename(archivo)} ha cambiado internamente.")
 
                 # 1. Creamos la carpeta de seguridad si no existe
                 os.makedirs('quarantine', exist_ok=True)
