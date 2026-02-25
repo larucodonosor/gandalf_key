@@ -2,6 +2,22 @@ import hashlib
 import os
 import json
 
+def obtener_muestra_adn(ruta):
+    try:
+        tamano = os.path.getsize(ruta)
+        if tamano == 0: return "00"
+
+        # Tu fórmula: (L^2 + 7) % S
+        L = len(os.path.basename(ruta))
+        posicion = (L**2 + 7) % tamano
+
+        with open(ruta, "rb") as f:
+            f.seek(posicion)
+            byte = f.read(1)
+            # Lo devolvemos en formato hexadecimal para que sea bonito
+            return byte.hex()
+    except:
+        return "ff"
 
 def generar_huella(ruta_archivo):
     """Genera el hash SHA-256 de un archivo."""
@@ -37,7 +53,8 @@ def mapear_carpeta(ruta_directorio):
 
                     'hash': huella,
                     'tamano': tamano,
-                    'modificado': stats.st_mtime #Guardamos la fecha e formato máquina
+                    'modificado': stats.st_mtime, #Guardamos la fecha e formato máquina
+                    'adn_muestra': obtener_muestra_adn(ruta_completa)
                 }
 
     return registro
