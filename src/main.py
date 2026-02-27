@@ -60,7 +60,7 @@ def ejecutar_gandalf():
     ruta = ["./", "./src"]
     archivo_memoria = "estado_base.json"
     EXTENSIONES_IGNORAR = [".log", ".tmp", ".json"]
-    ARCHIVOS_IGNORAR = ["config.ini"]
+    ARCHIVOS_IGNORAR = ["config.ini", "DESARROLLO.txt"]
 
     # ASEGURAR LA BÓVEDA ANTES DE EMPEZAR
     os.makedirs(".gandalf_vault", exist_ok=True)
@@ -211,6 +211,14 @@ def ejecutar_gandalf():
                 cont_alertas += 1
                 print(f"💀 ¡ALERTA! Archivo ELIMINADO: {archivo_viejo}")
                 registrar_log(f"Archivo desaparecido: {archivo_viejo}")
+
+                exito = restaurar_archivo(archivo_viejo)
+
+                if exito:
+                    print(f"🩹 Gandalf ha resucitado el archivo eliminado.")
+                else:
+                    print(f"❌ Error: El archivo no estaba en la bóveda.")
+
     except Exception as e:
         print(f"🕵️‍♂️ Gandalf detectó una perturbación en la Fuerza: {e}")
         registrar_log(f"Error en el escaneo: {e}")

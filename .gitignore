@@ -1,1 +1,17 @@
+# Carpetas de configuración de PyCharm
+.idea/
+
+# Archivos temporales de Python
+**/__pycache__/
+*.pyc
+
+# Carpetas de trabajo de Gandalf (no queremos subirlas a la nube)
+.gandalf_vault/
+quarantine/
+logs/
+
+# Archivo de estado local
 estado_base.json
+
+# Nuestra llave de desarrollo (es personal)
+DESARROLLO.txt
