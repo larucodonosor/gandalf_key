@@ -1,84 +1,19 @@
 import json
 import os
-import requests
 import shutil
 import time
 from scanner import mapear_carpeta, validar_adn
-from datetime import datetime
+from alertas import gritar_al_mundo, registrar_log
+from seguridad import restaurar_archivo
 
 
 TIEMPO_ESPERA = 30
-
-def ofuscar_mensaje(texto, clave=13):
-    resultado = ""
-    for letra in texto:
-        resultado += chr(ord(letra) ^ clave)
-    return resultado
-
-def gritar_al_mundo(mensaje):
-    url = " https://httpbin.org/post"
-    # Ofuscamos el grito para que nadie lo lea por el camino
-    mensaje_secreto = ofuscar_mensaje(mensaje, 32)
-    datos = {"alerta": mensaje_secreto, "emisor": "Gandalf"}
-
-    try:
-        print(f"Enviando alerta: {mensaje}...")
-        respuesta = requests.post(url, json=datos, timeout=10)
-        print(f"Estado recibido: {respuesta.status_code}")
-
-        if respuesta.status_code == 200:
-            print("🌐 ¡Conexión exitosa!")
-            print("Servidor recibió:", respuesta.json()["json"])
-        else:
-            print(f"❌ Error en el servidor: {respuesta.status_code}")
-    except Exception as e:
-        print(f"📡 Error de red: {e}")
-
-def restaurar_archivo(ruta_afectada):
-    ruta_vault = os.path.join(".gandalf_vault", os.path.basename(ruta_afectada))
-
-    if os.path.exists(ruta_vault):
-        print(f"🩹 Iniciando autocuración para: {ruta_afectada}")
-        # Usamos copy2 para mantener las fechas originales
-        shutil.copy2(ruta_vault, ruta_afectada)
-        print(f"✨ Archivo restaurado con éxito desde la bóveda.")
-        return True
-    else:
-        print(f"⚠️ No hay copia de seguridad en la bóveda para {ruta_afectada}")
-        return False
-
-def registrar_log(mensaje):
-    fecha_hora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    mensaje_secreto = ofuscar_mensaje(mensaje, 13)
-    linea = f"[{fecha_hora}] {mensaje_secreto}\n"
-
-    # Asegúrate de que la carpeta logs existe o créala
-    with open("logs/historial.log", "a", encoding="utf-8") as archivo:
-        archivo.write(linea)
 
 def ejecutar_gandalf():
     ruta = ["./", "./src"]
     archivo_memoria = "estado_base.json"
     EXTENSIONES_IGNORAR = [".log", ".tmp", ".json"]
     ARCHIVOS_IGNORAR = ["config.ini", "DESARROLLO.txt"]
-
-    # ASEGURAR LA BÓVEDA ANTES DE EMPEZAR
-    os.makedirs(".gandalf_vault", exist_ok=True)
-
-    for r in ruta:
-
-        for f in os.listdir(r):
-            # 1. Creamos la ruta completa para que Python no se pierda
-            ruta_completa = os.path.join(r, f)
-
-            # 2. El filtro de seguridad: solo archivos reales que terminen en .py
-            if os.path.isfile(ruta_completa) and f.endswith(".py"):
-                ruta_destino = os.path.join(".gandalf_vault", f)
-
-            # Si no lo tenemos en la bóveda, lo protegemos
-                if not os.path.exists(ruta_destino):
-                    shutil.copy2(ruta_completa, ruta_destino)
-                    print(f"📦 Copia de seguridad creada: {f}")
 
      # ... rutas, memoria ...
     cont_ok = 0
@@ -164,42 +99,23 @@ def ejecutar_gandalf():
             #Si lo anterior falla, miramos el HASH para confirmar
             elif datos_actuales["hash"] != memoria_pasada[archivo]["hash"]:
                 cont_alertas += 1
-                print(f"🚨 ALERTA: {archivo} HA SIDO MODIFICADO!")
-
-                # 1. Creamos la carpeta de seguridad si no existe
-                os.makedirs('quarantine', exist_ok=True)
-
-                # 2. Preparamos el nombre del archivo de "evidencia"
-                # Usamos basename para sacar solo el nombre (ej: "main.py") sin toda la ruta C:/...
                 nombre_base = os.path.basename(archivo)
-                partes = nombre_base.rsplit(".", 1)
-                nombre_sin_ext = partes[0]
-                extension = partes[1] if len(partes) > 1 else ""
-                clave_secreta = 4 << 3
-                nombre_disfrazado = ofuscar_mensaje(nombre_sin_ext, clave_secreta)
-                nombre_final = f"MOD_{nombre_disfrazado}.{extension}"
-                ruta_destino = os.path.join("quarantine", f"MODIFICADO_{nombre_final}")
+                print(f"🚨 ALERTA: {nombre_base} HA SIDO MODIFICADO!")
+
+                # 1. Registro y grito (llamamos a alertas.py)
 
                 registrar_log(f'Modificación detectada en: {archivo}')
                 gritar_al_mundo(f"¡INTRUSO! El archivo {nombre_base} ha sido alterado.")
 
-                # 3. ¡A CUARENTENA! Copiamos el archivo físico
-                shutil.copy(archivo, ruta_destino)
-
-                  # ¡NUEVO: EL PROTOCOLO DE DECISIÓN: DESARROLLO VS AUTOCURACIÓN!
+                # 2. Protocolo de Decisión (Aquí está la clave)
                 if os.path.isfile("DESARROLLO.txt"):
-                    # Si estamos trabajando, actualizamos la copia de seguridad
-                    ruta_vault = os.path.join(".gandalf_vault", os.path.basename(archivo))
+                    # Si es desarrollo, actualizamos la bóveda
+                    ruta_vault = os.path.join(".gandalf_vault", nombre_base)
                     shutil.copy2(archivo, ruta_vault)
-                    print(f"🛠️ MODO DESARROLLO: Bóveda actualizada para {os.path.basename(archivo)}")
+                    print(f"🛠️ MODO DESARROLLO: Bóveda actualizada para {nombre_base}")
                 else:
-                    # Si NO estamos trabajando, es un ataque y restauramos
-                    exito = restaurar_archivo(archivo)
-
-                    if exito:
-                        print(f"🛡️ Gandalf ha revertido los cambios en {os.path.basename(archivo)}")
-                    else:
-                        print(f"❌ Error crítico: No se pudo recuperar el archivo original.")
+                    # Si es ataque, llamamos al especialista (seguridad.py)
+                    restaurar_archivo(archivo)
 
             else:
                     cont_ok += 1
@@ -212,12 +128,7 @@ def ejecutar_gandalf():
                 print(f"💀 ¡ALERTA! Archivo ELIMINADO: {archivo_viejo}")
                 registrar_log(f"Archivo desaparecido: {archivo_viejo}")
 
-                exito = restaurar_archivo(archivo_viejo)
-
-                if exito:
-                    print(f"🩹 Gandalf ha resucitado el archivo eliminado.")
-                else:
-                    print(f"❌ Error: El archivo no estaba en la bóveda.")
+                restaurar_archivo(archivo_viejo)
 
     except Exception as e:
         print(f"🕵️‍♂️ Gandalf detectó una perturbación en la Fuerza: {e}")
