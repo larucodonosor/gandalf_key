@@ -64,14 +64,14 @@ def ejecutar_gandalf():
         for archivo, datos_actuales in estado_filtrado.items():
             if archivo not in memoria_pasada:
                 cont_nuevos += 1
-                print(f"🆕 NUEVO ARCHIVO DETECTADO: {archivo}")
+                gritar_al_mundo(f"🆕 NUEVO ARCHIVO DETECTADO: {archivo}", nivel='INFO')
                 #Pasar por rayos X
                 es_seguro, mensaje_adn = validar_adn(archivo)
 
                 if not es_seguro:
                     print(f'🚨 {mensaje_adn}')
                     registrar_log(mensaje_adn)
-                    gritar_al_mundo(f'BLOQUEO DE EMERGENCIA: {archivo} por camuflaje de ADN')
+                    gritar_al_mundo(f'BLOQUEO DE EMERGENCIA: {archivo} por camuflaje de ADN', nivel='CRITICO')
 
                 #BLOQUEO: Lo movemos a cuarentena y lo borramos del sitio original
                     os.makedirs('quarantine', exist_ok=True)
@@ -82,30 +82,16 @@ def ejecutar_gandalf():
                     continue
                 else:
                     print(f"✅ ADN Verificado para {os.path.basename(archivo)}")
-            elif (datos_actuales["tamano"] == memoria_pasada[archivo]["tamano"]) and \
-             (datos_actuales["modificado"] == memoria_pasada[archivo]["modificado"]):
-
-                # CHEQUEO DE ADN SECRETO
-
-                if datos_actuales["adn_muestra"] != memoria_pasada[archivo].get("adn_muestra"):
-                    cont_alertas += 1
-                    print(f"🚨 ¡ALERTA DE SUPLANTACIÓN! El ADN en la posición secreta ha cambiado en {archivo}")
-                  # Aquí dispararíamos la cuarentena...
-                else:
-                    cont_ok += 1
-                    print(f"✅ {os.path.basename(archivo)}: OK (ADN Verificado)")
-                    continue
-
-            #Si lo anterior falla, miramos el HASH para confirmar
+            # Miramos el HASH
             elif datos_actuales["hash"] != memoria_pasada[archivo]["hash"]:
                 cont_alertas += 1
                 nombre_base = os.path.basename(archivo)
-                print(f"🚨 ALERTA: {nombre_base} HA SIDO MODIFICADO!")
+                # print(f"🚨 ALERTA: {nombre_base} HA SIDO MODIFICADO!")
 
                 # 1. Registro y grito (llamamos a alertas.py)
 
                 registrar_log(f'Modificación detectada en: {archivo}')
-                gritar_al_mundo(f"¡INTRUSO! El archivo {nombre_base} ha sido alterado.")
+                gritar_al_mundo(f"¡INTRUSO! El archivo {nombre_base} ha sido alterado.", nivel='CRITICO')
 
                 # 2. Protocolo de Decisión (Aquí está la clave)
                 if os.path.isfile("DESARROLLO.txt"):
@@ -117,6 +103,20 @@ def ejecutar_gandalf():
                     # Si es ataque, llamamos al especialista (seguridad.py)
                     restaurar_archivo(archivo)
 
+            elif (datos_actuales["tamano"] == memoria_pasada[archivo]["tamano"]) and \
+             (datos_actuales["modificado"] == memoria_pasada[archivo]["modificado"]):
+
+                # CHEQUEO DE ADN SECRETO
+
+                if datos_actuales["adn_muestra"] != memoria_pasada[archivo].get("adn_muestra"):
+                    cont_alertas += 1
+                    gritar_al_mundo(f"🚨 ¡ALERTA DE SUPLANTACIÓN! El ADN en la posición secreta ha cambiado en {archivo}", nivel='CRITICO')
+                  # Aquí dispararíamos la cuarentena...
+                else:
+                    cont_ok += 1
+                    print(f"✅ {os.path.basename(archivo)}: OK (ADN Verificado)")
+                    continue
+
             else:
                     cont_ok += 1
                     print(f"✅ {archivo}: OK")
@@ -125,7 +125,7 @@ def ejecutar_gandalf():
         for archivo_viejo in memoria_pasada:
             if archivo_viejo not in estado_filtrado:
                 cont_alertas += 1
-                print(f"💀 ¡ALERTA! Archivo ELIMINADO: {archivo_viejo}")
+                gritar_al_mundo(f"💀 ¡ALERTA! Archivo ELIMINADO: {archivo_viejo}", nivel='ALERTA')
                 registrar_log(f"Archivo desaparecido: {archivo_viejo}")
 
                 restaurar_archivo(archivo_viejo)
