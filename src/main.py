@@ -134,7 +134,7 @@ def ejecutar_gandalf():
         print(f"🕵️‍♂️ Gandalf detectó una perturbación en la Fuerza: {e}")
         registrar_log(f"Error en el escaneo: {e}")
 
-    # --- NUEVO REPORTE FINAL ---
+        # --- NUEVO REPORTE FINAL ---
     print("-" * 30)
     print(f"📊 RESUMEN DEL ESCÁNER:")
     print(f"✅ Correctos: {cont_ok}")
