@@ -8,6 +8,7 @@ def ofuscar_mensaje(texto, clave=13):
     return resultado
 
 def lanzar_alerta_web(mensaje):
+    exito = False
     url = "https://httpbin.org/post"
     mensaje_secreto = ofuscar_mensaje(mensaje, 32)
     datos = {"alerta": mensaje_secreto, "emisor": "Gandalf"}
@@ -20,6 +21,12 @@ def lanzar_alerta_web(mensaje):
             print(f"❌ Error en el servidor: {respuesta.status_code}")
     except Exception as e:
         print(f"📡 Error de red: {e}")
+    finally:
+        # Se ejecuta siempre tanto si hay error como si no; se guarda un ticket local de que Gandalf actuó.
+        with open("logs/actividad_red.log", "a", encoding='utf-8') as f:
+            estado = "ENVIADO" if exito else "FALLIDO"
+            f.write(f"[{datetime.now()}] Intento: {mensaje[:30]}... | Estado: {estado}\n")
+        print("📝 Registro de actividad de red actualizado (Safe Mode).")
 
 def gritar_al_mundo(mensaje, nivel='INFO'):
     # Ahora recibe un mensaje y un NIVEL de gravedad.
