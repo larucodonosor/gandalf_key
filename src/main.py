@@ -2,6 +2,7 @@ import json
 import os
 import shutil
 import time
+import sys
 from scanner import mapear_carpeta, validar_adn
 from alertas import gritar_al_mundo, registrar_log
 from seguridad import restaurar_archivo
@@ -53,7 +54,7 @@ def ejecutar_gandalf():
         # Si NO existe, guardamos la primera "foto" y salimos
         with open(archivo_memoria, "w") as f:
             json.dump(estado_filtrado, f)
-        print("📸 Primera firma guardada. Sistema listo.")
+        # print("📸 Primera firma guardada. Sistema listo.")
         return
 
     # 5. El Gran Comparador (Tu lógica de seguridad)
@@ -69,7 +70,7 @@ def ejecutar_gandalf():
                 es_seguro, mensaje_adn = validar_adn(archivo)
 
                 if not es_seguro:
-                    print(f'🚨 {mensaje_adn}')
+                    # print(f'🚨 {mensaje_adn}')
                     registrar_log(mensaje_adn)
                     gritar_al_mundo(f'BLOQUEO DE EMERGENCIA: {archivo} por camuflaje de ADN', nivel='CRITICO')
 
@@ -80,8 +81,8 @@ def ejecutar_gandalf():
                     print(f"🔒 Archivo neutralizado y movido a cuarentena.")
 
                     continue
-                else:
-                    print(f"✅ ADN Verificado para {os.path.basename(archivo)}")
+                # else:
+                    # print(f"✅ ADN Verificado para {os.path.basename(archivo)}")
             # Miramos el HASH
             elif datos_actuales["hash"] != memoria_pasada[archivo]["hash"]:
                 cont_alertas += 1
@@ -98,7 +99,7 @@ def ejecutar_gandalf():
                     # Si es desarrollo, actualizamos la bóveda
                     ruta_vault = os.path.join(".gandalf_vault", nombre_base)
                     shutil.copy2(archivo, ruta_vault)
-                    print(f"🛠️ MODO DESARROLLO: Bóveda actualizada para {nombre_base}")
+                    # print(f"🛠️ MODO DESARROLLO: Bóveda actualizada para {nombre_base}")
                 else:
                     # Si es ataque, llamamos al especialista (seguridad.py)
                     restaurar_archivo(archivo)
@@ -114,12 +115,12 @@ def ejecutar_gandalf():
                   # Aquí dispararíamos la cuarentena...
                 else:
                     cont_ok += 1
-                    print(f"✅ {os.path.basename(archivo)}: OK (ADN Verificado)")
+                    # print(f"✅ {os.path.basename(archivo)}: OK (ADN Verificado)")
                     continue
 
             else:
                     cont_ok += 1
-                    print(f"✅ {archivo}: OK")
+                    # print(f"✅ {archivo}: OK")
 
         # 5.2 Segundo Comparador: Detectar archivos borrados
         for archivo_viejo in memoria_pasada:
@@ -135,20 +136,24 @@ def ejecutar_gandalf():
         registrar_log(f"Error en el escaneo: {e}")
 
         # --- NUEVO REPORTE FINAL ---
-    print("-" * 30)
-    print(f"📊 RESUMEN DEL ESCÁNER:")
-    print(f"✅ Correctos: {cont_ok}")
-    print(f"🆕 Nuevos:    {cont_nuevos}")
-    print(f"🚨 Alertas:   {cont_alertas}")
-    print("-" * 30)
+    # print("-" * 30)
+    # print(f"📊 RESUMEN DEL ESCÁNER:")
+    # print(f"✅ Correctos: {cont_ok}")
+    # print(f"🆕 Nuevos:    {cont_nuevos}")
+    # print(f"🚨 Alertas:   {cont_alertas}")
+    # print("-" * 30)
     # 6. Actualizamos la memoria para la próxima vez
     with open(archivo_memoria, "w") as f:
         json.dump(estado_filtrado, f, indent=4)  # El indent=4 lo hace legible
 
-        print("\n💾 Memoria actualizada.")
+        # print("\n💾 Memoria actualizada.")
 
 if __name__ == "__main__":
+    print("🛡️ Gandalf ha iniciado su guardia silenciosa...")
     while True:
         ejecutar_gandalf()
-        print("\n[💤] Gandalf está descansando... Próximo escaneo en 30 segundos.")
+
+        sys.stdout.write(". ")
+        sys.stdout.flush()
+
         time.sleep(TIEMPO_ESPERA)  # El programa se "congela" aquí 30 segundos ejecutar_gandalf()

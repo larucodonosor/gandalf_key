@@ -17,6 +17,7 @@ def lanzar_alerta_web(mensaje):
         respuesta = requests.post(url, json=datos, timeout=10)
         if respuesta.status_code == 200:
             print("🌐 ¡Conexión exitosa con el servidor de seguridad!")
+            exito = True
         else:
             print(f"❌ Error en el servidor: {respuesta.status_code}")
     except Exception as e:
@@ -41,11 +42,12 @@ def gritar_al_mundo(mensaje, nivel='INFO'):
     # 1. Siempre registramos en el log
     registrar_log(f"[{nivel}] {mensaje}")
 
-    # 2. Buscamos el prefijo en el manual
-    # Si el nivel no existe, usamos "SISTEMA" por defecto
-    prefijo = PROCEDIMIENTOS.get(nivel, "🤖 SISTEMA")
-
-    print(f"{prefijo}: {mensaje}")
+    # 2. FILTRADO INTELIGENTE:
+    # Solo imprimimos en pantalla si es algo importante (ALERTA o superior)
+    # o si estamos en modo DEBUG.
+    if nivel in ["ALERTA", "CRITICO", "DEBUG"]:
+        prefijo = PROCEDIMIENTOS.get(nivel, "🤖 SISTEMA")
+        print(f"{prefijo}: {mensaje}")
 
     if nivel == "CRITICO":
         lanzar_alerta_web(mensaje)
