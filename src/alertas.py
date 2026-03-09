@@ -1,5 +1,10 @@
 import requests
+import os
 from datetime import datetime
+from dotenv import load_dotenv
+
+# Cargamos el archivo .env
+load_dotenv()
 
 def ofuscar_mensaje(texto, clave=13):
     resultado = ""
@@ -7,27 +12,21 @@ def ofuscar_mensaje(texto, clave=13):
         resultado += chr(ord(letra) ^ clave)
     return resultado
 
-def lanzar_alerta_web(mensaje):
+TELEGRAM_TOKEN = os.getenv("TOKEN_TELEGRAM")
+CHAT_ID_PROPIO = os.getenv("CHAT_ID_TELEGRAM")
+
+def lanzar_alerta_telegram(mensaje):
     exito = False
-    url = "https://httpbin.org/post"
-    mensaje_secreto = ofuscar_mensaje(mensaje, 32)
-    datos = {"alerta": mensaje_secreto, "emisor": "Gandalf"}
+    url = "https://api.telegram.org/bot" + TELEGRAM_TOKEN + '/sendMessage'
+    # mensaje_secreto = ofuscar_mensaje(mensaje, 32)
+    datos = {"chat_id": CHAT_ID_PROPIO, "text": "🛡️ GANDALF NOTIFICA:\n\n" + mensaje}
     try:
         print(f"🚀 Iniciando protocolo de red para: {mensaje}...")
         respuesta = requests.post(url, json=datos, timeout=10)
-        if respuesta.status_code == 200:
-            print("🌐 ¡Conexión exitosa con el servidor de seguridad!")
-            exito = True
-        else:
-            print(f"❌ Error en el servidor: {respuesta.status_code}")
+        if respuesta.status_code != 200:
+            registrar_log("Error API Telegram: " + str(respuesta.status_code))
     except Exception as e:
-        print(f"📡 Error de red: {e}")
-    finally:
-        # Se ejecuta siempre tanto si hay error como si no; se guarda un ticket local de que Gandalf actuó.
-        with open("logs/actividad_red.log", "a", encoding='utf-8') as f:
-            estado = "ENVIADO" if exito else "FALLIDO"
-            f.write(f"[{datetime.now()}] Intento: {mensaje[:30]}... | Estado: {estado}\n")
-        print("📝 Registro de actividad de red actualizado (Safe Mode).")
+        registrar_log("📡 Fallo de red Telegram:" + str(e))
 
 def gritar_al_mundo(mensaje, nivel='INFO'):
     # Ahora recibe un mensaje y un NIVEL de gravedad.
@@ -50,7 +49,7 @@ def gritar_al_mundo(mensaje, nivel='INFO'):
         print(f"{prefijo}: {mensaje}")
 
     if nivel == "CRITICO":
-        lanzar_alerta_web(mensaje)
+        lanzar_alerta_telegram(mensaje)
 
 def registrar_log(mensaje):
     fecha_hora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
