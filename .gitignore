@@ -15,3 +15,6 @@ estado_base.json
 
 # Nuestra llave de desarrollo (es personal)
 DESARROLLO.txt
+
+# La información sensible
+.env
