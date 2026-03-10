@@ -3,6 +3,7 @@ import os
 import shutil
 import time
 import sys
+import alertas
 from scanner import mapear_carpeta, validar_adn
 from alertas import gritar_al_mundo, registrar_log
 from seguridad import restaurar_archivo
@@ -151,8 +152,16 @@ def ejecutar_gandalf():
 if __name__ == "__main__":
     print("🛡️ Gandalf ha iniciado su guardia silenciosa...")
     while True:
+        # 1. EJECUTAR EL ESCANEO DE SEGURIDAD
         ejecutar_gandalf()
 
+        # 2. ESCUCHA ACTIVA: Gandalf revisa su Telegram
+        orden = alertas.leer_mensajes()
+
+        if orden == "/status":
+            alertas.lanzar_alerta_telegram("✅ Sistema Operativo. Los archivos están a salvo, Lara.")
+
+        # FEEDBACK VISUAL Y DESCANSO
         sys.stdout.write(". ")
         sys.stdout.flush()
 

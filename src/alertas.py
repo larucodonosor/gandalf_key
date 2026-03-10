@@ -21,7 +21,7 @@ def lanzar_alerta_telegram(mensaje):
     # mensaje_secreto = ofuscar_mensaje(mensaje, 32)
     datos = {"chat_id": CHAT_ID_PROPIO, "text": "🛡️ GANDALF NOTIFICA:\n\n" + mensaje}
     try:
-        print(f"🚀 Iniciando protocolo de red para: {mensaje}...")
+        # print(f"🚀 Iniciando protocolo de red para: {mensaje}...")
         respuesta = requests.post(url, json=datos, timeout=10)
         if respuesta.status_code != 200:
             registrar_log("Error API Telegram: " + str(respuesta.status_code))
@@ -57,3 +57,18 @@ def registrar_log(mensaje):
     linea = f"[{fecha_hora}] {mensaje_secreto}\n"
     with open("logs/historial.log", "a", encoding="utf-8") as archivo:
         archivo.write(linea)
+
+def leer_mensajes():
+    """Revisa si el usuario ha escrito algo al Bot"""
+    url = "https://api.telegram.org/bot" + TELEGRAM_TOKEN + "/getUpdates"
+    try:
+        # Solo pedimos el último mensaje para no repetir
+        respuesta = requests.get(url, params={"offset": -1}, timeout=5)
+        if respuesta.status_code == 200:
+            datos = respuesta.json()
+            if datos["result"]:
+                ultimo_mensaje = datos["result"][0]["message"]["text"]
+                return ultimo_mensaje
+    except:
+        return None
+    return None
