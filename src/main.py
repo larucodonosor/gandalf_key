@@ -4,6 +4,7 @@ import shutil
 import time
 import sys
 import alertas
+import seguridad
 from scanner import mapear_carpeta, validar_adn
 from alertas import gritar_al_mundo, registrar_log
 from seguridad import restaurar_archivo
@@ -151,11 +152,26 @@ def ejecutar_gandalf():
 
 if __name__ == "__main__":
     print("🛡️ Gandalf ha iniciado su guardia silenciosa...")
+    usbs_conocidos = seguridad.obtener_unidades_removibles()
     while True:
         # 1. EJECUTAR EL ESCANEO DE SEGURIDAD
         ejecutar_gandalf()
 
-        # 2. ESCUCHA ACTIVA: Gandalf revisa su Telegram
+        # 2. VIGILANCIA USB
+        usbs_actuales = seguridad.obtener_unidades_removibles()
+
+        # ¿Hay más que antes?
+        if len(usbs_actuales) > len(usbs_conocidos):
+            nuevos = [u for u in usbs_actuales if u not in usbs_conocidos]
+            alertas.lanzar_alerta_telegram(f"⚠️ ¡OJO! Nuevo hardware detectado: {nuevos}")
+            usbs_conocidos = usbs_actuales  # Actualizamos la memoria
+
+        # ¿Desapareció alguno?
+        elif len(usbs_actuales) < len(usbs_conocidos):
+            alertas.lanzar_alerta_telegram("ℹ️ Dispositivo extraído.")
+            usbs_conocidos = usbs_actuales
+
+        # 3. ESCUCHA ACTIVA: Gandalf revisa su Telegram
         orden = alertas.leer_mensajes()
 
         if orden == "/status":
@@ -165,4 +181,4 @@ if __name__ == "__main__":
         sys.stdout.write(". ")
         sys.stdout.flush()
 
-        time.sleep(TIEMPO_ESPERA)  # El programa se "congela" aquí 30 segundos ejecutar_gandalf()
+        time.sleep(TIEMPO_ESPERA)  # El programa se "congela" aquí 30 segundos
