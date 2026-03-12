@@ -1,5 +1,6 @@
 import os
 import shutil
+import psutil
 
 def asegurar_boveda(rutas):
     """Revisa las carpetas y protege los archivos .py que no estén en la bóveda."""
@@ -24,3 +25,11 @@ def restaurar_archivo(ruta_afectada):
     else:
         print(f"⚠️ No hay copia de seguridad en la bóveda para {ruta_afectada}")
         return False
+
+def listar_unidades_usb():
+    unidades = []
+    for particion in psutil.disk_partitions():
+        # En Windows, los USB suelen aparecer como 'removable'
+        if 'removable' in particion.opts or 'cdrom' in particion.opts:
+            unidades.append(particion.device)
+    return unidades
