@@ -5,6 +5,7 @@ import time
 import sys
 import alertas
 import seguridad
+import vigilancia
 from scanner import mapear_carpeta, validar_adn
 from alertas import gritar_al_mundo, registrar_log
 from seguridad import restaurar_archivo
@@ -174,8 +175,29 @@ if __name__ == "__main__":
         # 3. ESCUCHA ACTIVA: Gandalf revisa su Telegram
         orden = alertas.leer_mensajes()
 
-        if orden == "/status":
-            alertas.lanzar_alerta_telegram("✅ Sistema Operativo. Los archivos están a salvo, Lara.")
+        if orden is not None:
+            if orden == "/status":
+                alertas.lanzar_alerta_telegram("✅ Sistema Operativo. Los archivos están a salvo, Lara.")
+            elif orden.startswith("/analizar "):
+                # Separamos el comando del enlace
+                enlace = orden.replace("/analizar ", "")
+                url_a_revisar = orden.replace("/analizar ", "").strip()
+                # Gandalf analiza la reputación
+                es_seguro, informe = vigilancia.analizar_url(url_a_revisar)
+
+                if es_seguro:
+                    alertas.lanzar_alerta_telegram(f"😇 {enlace}: {informe}")
+                else:
+                   alertas.lanzar_alerta_telegram(f"💀 ¡PELIGRO! {enlace}: {informe}")
+
+                    # Bloqueo visual del pc
+                   quiere_continuar = seguridad.advertencia_visual(url_a_revisar)
+
+                   if quiere_continuar:
+                       alertas.lanzar_alerta_telegram(
+                       "⚠️ ADVERTENCIA: Has decidido ignorar el bloqueo.")
+                   else:
+                       alertas.lanzar_alerta_telegram("✅ Sabia elección. Acceso cancelado.")
 
         # FEEDBACK VISUAL Y DESCANSO
         sys.stdout.write(". ")

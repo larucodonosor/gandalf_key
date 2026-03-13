@@ -1,6 +1,8 @@
 import os
 import shutil
 import psutil
+from tkinter import messagebox
+import tkinter as tk
 
 def asegurar_boveda(rutas):
     """Revisa las carpetas y protege los archivos .py que no estén en la bóveda."""
@@ -26,10 +28,26 @@ def restaurar_archivo(ruta_afectada):
         print(f"⚠️ No hay copia de seguridad en la bóveda para {ruta_afectada}")
         return False
 
-def listar_unidades_usb():
+def obtener_unidades_removibles():
     unidades = []
     for particion in psutil.disk_partitions():
         # En Windows, los USB suelen aparecer como 'removable'
         if 'removable' in particion.opts or 'cdrom' in particion.opts:
             unidades.append(particion.device)
     return unidades
+def advertencia_visual(url):
+    # Creamos una ventana raíz oculta
+    root = tk.Tk()
+    root.withdraw()
+    root.attributes("-topmost", True) # Esto hace que salga por encima de todo
+
+    # Lanzamos el cuadro de decisión
+    respuesta = messagebox.askyesno(
+   "🛡️ BLOQUEO DE SEGURIDAD - GANDALF",
+        f"Lara, he analizado el enlace:\n\n{url}\n\n"
+        "Parece un sitio de FRAUDE.\n"
+        "¿Deseas ignorar la advertencia y continuar?"
+    )
+
+    root.destroy()
+    return respuesta # Devuelve True si pulsas "Sí", False si pulsas "No"
