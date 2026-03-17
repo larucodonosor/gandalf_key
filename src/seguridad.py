@@ -3,6 +3,7 @@ import shutil
 import psutil
 from tkinter import messagebox
 import tkinter as tk
+import pyautogui
 
 def asegurar_boveda(rutas):
     """Revisa las carpetas y protege los archivos .py que no estén en la bóveda."""
@@ -35,19 +36,21 @@ def obtener_unidades_removibles():
         if 'removable' in particion.opts or 'cdrom' in particion.opts:
             unidades.append(particion.device)
     return unidades
-def advertencia_visual(url):
+def advertencia_visual(url, nivel= "BLOQUEAR"):
     # Creamos una ventana raíz oculta
     root = tk.Tk()
     root.withdraw()
     root.attributes("-topmost", True) # Esto hace que salga por encima de todo
 
-    # Lanzamos el cuadro de decisión
-    respuesta = messagebox.askyesno(
-   "🛡️ BLOQUEO DE SEGURIDAD - GANDALF",
-        f"Lara, he analizado el enlace:\n\n{url}\n\n"
-        "Parece un sitio de FRAUDE.\n"
-        "¿Deseas ignorar la advertencia y continuar?"
-    )
+    if nivel == "BLOQUEAR":
+        titulo = "🛡️ BLOQUEO DE SEGURIDAD - GANDALF"
+        mensaje = f"Lara, este sitio es PELIGROSO:\n\n{url}\n\n¿Quieres que Gandalf bloquee el acceso y te saque de aquí?"
+        # askyesno: Si dice SI (quiere que le saque), ejecutamos pyautogui
+        sacar_de_aqui = messagebox.askyesno(titulo, mensaje)
+        if sacar_de_aqui:
+            pyautogui.hotkey('alt', 'left')
+            root.destroy()
+            return False  # No es seguro seguir
 
     root.destroy()
-    return respuesta # Devuelve True si pulsas "Sí", False si pulsas "No"
+    return True # Es seguro o el usuario asume el riesgo

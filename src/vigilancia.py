@@ -1,19 +1,22 @@
 import requests
 
 def analizar_url(url):
-    # Normalizamos el enlace
-    url_limpia = url.lower().strip()
+    # URL de una API pública de chequeo (ejemplo conceptual operativo)
+    api_url = f"https://urlscan.io/api/v1/search/?q=domain:{url}"
 
-    # Nuestra lista de "malos conocidos"
-    LISTA_NEGRA = [
-        "https://www.google.com/url?sa=E&source=gmail&q=pago-pablo.com",
-        "ganancia-facil.net",
-        "actualiza-tu-password.io",
-        "bit.ly/premio-seguro"
-        ]
+    try:
+        # Implementamos timeout para que si el servidor no responde en x tiempo, Gandalf no quede 'colgado'
+        respuesta = requests.get(api_url, timeout=5)
+        # Convertimos la respuesta (JSON) en un Diccionario de Python
+        datos = respuesta.json()
 
-    for sitio_maligno in LISTA_NEGRA:
-        if sitio_maligno in url.lower():
-            return False, "⚠️ SITIO DETECTADO EN LISTA NEGRA DE PHISHING"
+        # LÓGICA DE PRODUCTO:
+        # Nivel Crítico: Bloqueo seguro
+        # Si la API encuentra resultados, miramos el 'veredicto'
+        if datos.get("total", 0) > 0:
+            # Si hay historial de ataques en esa URL
+            return "BLOQUEAR", f"⚠️ AMENAZA CRÍTICA: este dominio tiene antecedentes de ataques."
 
-    return True, "✅ El sitio parece limpio (por ahora)"
+        return True, "✅ El sitio parece limpio (por ahora)"
+    except:
+        return False, "❌ Error de conexión al escanear. Por seguridad, no entres."
