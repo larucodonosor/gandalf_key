@@ -153,7 +153,12 @@ def ejecutar_gandalf():
 
 if __name__ == "__main__":
     print("🛡️ Gandalf ha iniciado su guardia silenciosa...")
+    paginas_revisadas = []
+    # Para hacer lectura en falso y 'vaciar' mensajes viejos
+    alertas.leer_mensajes()
+
     usbs_conocidos = seguridad.obtener_unidades_removibles()
+
     while True:
         # 1. EJECUTAR EL ESCANEO DE SEGURIDAD
         ejecutar_gandalf()
@@ -180,24 +185,36 @@ if __name__ == "__main__":
                 alertas.lanzar_alerta_telegram("✅ Sistema Operativo. Los archivos están a salvo, Lara.")
             elif orden.startswith("/analizar "):
                 # Separamos el comando del enlace
-                enlace = orden.replace("/analizar ", "")
                 url_a_revisar = orden.replace("/analizar ", "").strip()
+
+                if url_a_revisar in paginas_revisadas:
+                    continue
+
+                # Si es nueva, la anotamos
+                paginas_revisadas.append(url_a_revisar)
+                if len(paginas_revisadas) > 10: paginas_revisadas.pop(0)
+
+                contexto = seguridad.obtener_contexto_ventana()
                 # Gandalf analiza la reputación
-                es_seguro, informe = vigilancia.analizar_url(url_a_revisar)
+                resultado, informe = vigilancia.analizar_url(url_a_revisar)
 
-                if es_seguro:
-                    alertas.lanzar_alerta_telegram(f"😇 {enlace}: {informe}")
-                else:
-                   alertas.lanzar_alerta_telegram(f"💀 ¡PELIGRO! {enlace}: {informe}")
+                if resultado == "BLOQUEAR":
+                    alertas.lanzar_alerta_telegram(f"💀 ¡PELIGRO! {contexto}: {informe}")
 
-                    # Bloqueo visual del pc
-                   quiere_continuar = seguridad.advertencia_visual(url_a_revisar)
+                    quiere_continuar = seguridad.advertencia_visual(url_a_revisar, nivel="BLOQUEAR")
 
-                   if quiere_continuar:
+                    if quiere_continuar:
                        alertas.lanzar_alerta_telegram(
                        "⚠️ ADVERTENCIA: Has decidido ignorar el bloqueo.")
-                   else:
+                    else:
                        alertas.lanzar_alerta_telegram("✅ Sabia elección. Acceso cancelado.")
+
+                elif resultado == "DESCONOCIDO":
+                    alertas.lanzar_alerta_telegram(f" ❓ AVISO en{contexto}: {informe}")
+                    seguridad.advertencia_visual(url_a_revisar, nivel="BLOQUEAR")
+
+                else:
+                    alertas.lanzar_alerta_telegram(f"👍 {contexto}: {informe}")
 
         # FEEDBACK VISUAL Y DESCANSO
         sys.stdout.write(". ")
