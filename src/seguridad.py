@@ -3,7 +3,6 @@ import shutil
 import psutil
 from tkinter import messagebox
 import tkinter as tk
-import pygetwindow as gw
 import pyautogui
 
 def asegurar_boveda(rutas):
@@ -37,34 +36,19 @@ def obtener_unidades_removibles():
         if 'removable' in particion.opts or 'cdrom' in particion.opts:
             unidades.append(particion.device)
     return unidades
-def obtener_contexto_ventana():
-    ventana = gw.getActiveWindow()
-    if ventana:
-        # Intentamos limpiar el título para que no sea una frase gigante
-        titulo = ventana.title
-        return titulo
-    return "Ventana desconocida"
 
 def advertencia_visual(url, nivel= "BLOQUEAR"):
-    # 1. Identificamos qué ventana tiene el usuario ahora mismo (antes del pop-up, que se convertiría si no en la ventana activa)
-    ventana_activa = gw.getActiveWindow()
-    titulo_ventana = ventana_activa.title.lower() if ventana_activa else ""
-
-    # 2. Definimos quiénes son los "Navegadores"
-    navegadores = ["chrome", "firefox", "edge", "brave", "opera"]
-    es_navegador = any(nav in titulo_ventana for nav in navegadores)
-
     # Configuramos la interfaz de Tkinter
     root = tk.Tk()
     root.withdraw()
     root.attributes("-topmost", True) # Esto hace que salga por encima de todo
 
     if nivel == "BLOQUEAR":
-        titulo_ventana = "🛡️ BLOQUEO DE SEGURIDAD - GANDALF"
+        titulo_box = "🛡️ BLOQUEO DE SEGURIDAD - GANDALF"
         mensaje_box = f"Lara, este sitio es PELIGROSO:\n\n{url}\n\n¿Quieres que Gandalf bloquee el acceso y te saque de aquí?"
         # askyesno: Si dice SI (quiere que le saque), ejecutamos pyautogui
-        sacar_de_aqui = messagebox.askyesno(titulo_ventana, mensaje_box, master=root)
-        if sacar_de_aqui and es_navegador:
+        sacar_de_aqui = messagebox.askyesno(titulo_box, mensaje_box, master=root)
+        if sacar_de_aqui:
             pyautogui.hotkey('alt', 'left')
             root.destroy()
             return False  # No es seguro seguir, la acción de seguridad se activó

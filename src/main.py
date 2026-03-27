@@ -3,13 +3,15 @@ import os
 import shutil
 import time
 import sys
+import threading
 import alertas
 import seguridad
 import vigilancia
+import firewall_rules
 from scanner import mapear_carpeta, validar_adn
 from alertas import gritar_al_mundo, registrar_log
 from seguridad import restaurar_archivo
-
+from servidor_g_k import app as servidor_app
 
 TIEMPO_ESPERA = 30
 
@@ -153,6 +155,13 @@ def ejecutar_gandalf():
 
 if __name__ == "__main__":
     print("🛡️ Gandalf ha iniciado su guardia silenciosa...")
+    # Lanzamos el SERVIDOR en un hilo aparte (background)
+    # Así escucha la extensión sin detener el escaneo de archivos
+    hilo_servidor = threading.Thread(target=lambda: servidor_app.run(port=5000, debug=False, use_reloader=False))
+    hilo_servidor.daemon = True  # Se cierra cuando cierres el programa
+    hilo_servidor.start()
+    print("🧙‍♂️ Gandalf está escuchando en el puerto 5000...")
+
     paginas_revisadas = []
     # Para hacer lectura en falso y 'vaciar' mensajes viejos
     alertas.leer_mensajes()
@@ -177,44 +186,9 @@ if __name__ == "__main__":
             alertas.lanzar_alerta_telegram("ℹ️ Dispositivo extraído.")
             usbs_conocidos = usbs_actuales
 
-        # 3. ESCUCHA ACTIVA: Gandalf revisa su Telegram
-        orden = alertas.leer_mensajes()
-
-        if orden is not None:
+            orden = alertas.leer_mensajes()
             if orden == "/status":
-                alertas.lanzar_alerta_telegram("✅ Sistema Operativo. Los archivos están a salvo, Lara.")
-            elif orden.startswith("/analizar "):
-                # Separamos el comando del enlace
-                url_a_revisar = orden.replace("/analizar ", "").strip()
-
-                if url_a_revisar in paginas_revisadas:
-                    continue
-
-                # Si es nueva, la anotamos
-                paginas_revisadas.append(url_a_revisar)
-                if len(paginas_revisadas) > 10: paginas_revisadas.pop(0)
-
-                contexto = seguridad.obtener_contexto_ventana()
-                # Gandalf analiza la reputación
-                resultado, informe = vigilancia.analizar_url(url_a_revisar)
-
-                if resultado == "BLOQUEAR":
-                    alertas.lanzar_alerta_telegram(f"💀 ¡PELIGRO! {contexto}: {informe}")
-
-                    quiere_continuar = seguridad.advertencia_visual(url_a_revisar, nivel="BLOQUEAR")
-
-                    if quiere_continuar:
-                       alertas.lanzar_alerta_telegram(
-                       "⚠️ ADVERTENCIA: Has decidido ignorar el bloqueo.")
-                    else:
-                       alertas.lanzar_alerta_telegram("✅ Sabia elección. Acceso cancelado.")
-
-                elif resultado == "DESCONOCIDO":
-                    alertas.lanzar_alerta_telegram(f" ❓ AVISO en{contexto}: {informe}")
-                    seguridad.advertencia_visual(url_a_revisar, nivel="BLOQUEAR")
-
-                else:
-                    alertas.lanzar_alerta_telegram(f"👍 {contexto}: {informe}")
+                alertas.lanzar_alerta_telegram("✅ Gandalf está en guardia. Sistema de archivos y Firewall activos.")
 
         # FEEDBACK VISUAL Y DESCANSO
         sys.stdout.write(". ")
