@@ -1,34 +1,63 @@
 import requests
+import os
+import base64
+import pygetwindow as gw
+from dotenv import load_dotenv
+
+
+load_dotenv()
+API_KEY = os.getenv("VIRUSTOTAL_API_KEY")
 
 def analizar_url(url):
-    url_limpia = url.lower().strip()
+    if not API_KEY:
+        return "ERROR", "No se encontró la API Key en el archivo .env"
+    # VirusTotal necesita la URL en formato base64
+    url_id = base64.urlsafe_b64encode(url.encode()).decode().strip("=")
 
-    # --- LISTA BLANCA (Whitelist) ---
-    sitios_confianza = ["google", "github", "microsoft", "linkedin", "gmail"]
-    for sitio in sitios_confianza:
-        if sitio in url_limpia:
-            print(f"✅ GANDALF: {url_limpia} es de confianza (basado en {sitio})")
-            return True, f"😇 Confianza verificada: {sitio} es un entorno seguro."
-    # URL de una API pública de chequeo (ejemplo conceptual operativo)
-    dominio_api = url_limpia.replace("https://", "").replace("http://", "").split("/")[0]
-    api_url = f"https://urlscan.io/api/v1/search/?q=domain:{dominio_api}"
+    endpoint = f"https://www.virustotal.com/api/v3/urls/{url_id}"
+    headers = {
+        "accept": "application/json",
+        "x-apikey": API_KEY
+    }
 
     try:
-        # Implementamos timeout para que si el servidor no responde en x tiempo, Gandalf no quede 'colgado'
-        respuesta = requests.get(api_url, timeout=5)
-        # Convertimos la respuesta (JSON) en un Diccionario de Python
+        respuesta = requests.get(endpoint, headers=headers)
+
+        # Si la URL es nueva y VT no la tiene, hay que pedirle que la escanee
+        if respuesta.status_code == 404:
+            return "DESCONOCIDO", "URL no analizada previamente. ¡Cuidado!"
+
         datos = respuesta.json()
 
-        # LÓGICA DE PRODUCTO:
-        # Nivel Crítico: Bloqueo seguro
-        # Si la API encuentra resultados, miramos el 'veredicto'
-        if datos.get("total", 0) > 0:
-            # Si hay historial de ataques en esa URL
-            return "BLOQUEAR", f"⚠️ AMENAZA CRÍTICA: este dominio tiene antecedentes de ataques."
+        # Sacamos las estadísticas de los 70 antivirus
+        stats = datos['data']['attributes']['last_analysis_stats']
+        maliciosos = stats['malicious']
+        sospechosos = stats['suspicious']
 
-        if datos.get("total") == 0:
-            return "DESCONOCIDO", f"❓ PRECAUCIÓN: No he encontrado información global sobre este sitio{dominio_api}. Procede con cuidado."
+        if maliciosos > 3:
+            return "BLOQUEAR", f"¡PELIGRO! {maliciosos} motores lo marcan como virus."
+        elif maliciosos > 0 or sospechosos > 0:
+            return "DESCONOCIDO", f"Aviso: {maliciosos + sospechosos} alertas detectadas."
+        else:
+            return "SEGURO", "Limpio. 70 antivirus dicen que es seguro."
 
-        return True, f"✅ El sitio {dominio_api} parece limpio (según historial global)."
+    except Exception as e:
+        return "ERROR", f"Error de conexión: {str(e)}"
+
+
+def obtener_url_del_navegador():
+    """Detecta si hay una URL en el título de la ventana activa."""
+    try:
+        ventana_activa = gw.getActiveWindow()
+        if ventana_activa:
+            titulo = ventana_activa.title
+            # Buscamos patrones típicos de URLs en el título
+            if "http" in titulo.lower() or "www." in titulo.lower():
+                palabras = titulo.split()
+                for p in palabras:
+                    if "http" in p.lower() or "www." in p.lower():
+                        return p
     except:
-        return False, "❌ Error de conexión al escanear. Por seguridad, no entres."
+        pass
+    return None
+
