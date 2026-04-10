@@ -7,7 +7,6 @@ import threading
 import alertas
 import seguridad
 import vigilancia
-import firewall_rules
 from scanner import mapear_carpeta, validar_adn
 from alertas import gritar_al_mundo, registrar_log
 from seguridad import restaurar_archivo
@@ -140,13 +139,6 @@ def ejecutar_gandalf():
         print(f"🕵️‍♂️ Gandalf detectó una perturbación en la Fuerza: {e}")
         registrar_log(f"Error en el escaneo: {e}")
 
-        # --- NUEVO REPORTE FINAL ---
-    # print("-" * 30)
-    # print(f"📊 RESUMEN DEL ESCÁNER:")
-    # print(f"✅ Correctos: {cont_ok}")
-    # print(f"🆕 Nuevos:    {cont_nuevos}")
-    # print(f"🚨 Alertas:   {cont_alertas}")
-    # print("-" * 30)
     # 6. Actualizamos la memoria para la próxima vez
     with open(archivo_memoria, "w") as f:
         json.dump(estado_filtrado, f, indent=4)  # El indent=4 lo hace legible

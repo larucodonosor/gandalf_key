@@ -9,7 +9,7 @@ def obtener_muestra_adn(ruta):
 
         # Tu fórmula: (L^2 + 7) % S
         L = len(os.path.basename(ruta))
-        posicion = (L**2 + 7) % tamano
+        posicion = (L**2 + 7) % tamano  # Los virus se suelen esconder del centro del nombre hacia el final, con esta fórmula se escoge un punto aleatorio desde donde comenzar la lectura.
 
         with open(ruta, "rb") as f:
             f.seek(posicion)
@@ -17,7 +17,7 @@ def obtener_muestra_adn(ruta):
             # Lo devolvemos en formato hexadecimal para que sea bonito
             return byte.hex()
     except:
-        return "ff"
+        return "ff"  # En hexadecimal = vacío/roto
 
 def generar_huella(ruta_archivo):
     """Genera el hash SHA-256 de un archivo."""

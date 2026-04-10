@@ -51,7 +51,7 @@ def advertencia_visual(url, nivel= "BLOQUEAR"):
         if sacar_de_aqui:
             pyautogui.hotkey('alt', 'left')
             root.destroy()
-            return False  # No es seguro seguir, la acción de seguridad se activó
+        return False  # No es seguro seguir, la acción de seguridad se activó
 
     root.destroy()
     return True # Es seguro o el usuario asume el riesgo
