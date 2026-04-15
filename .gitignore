@@ -5,18 +5,19 @@
 **/__pycache__/
 *.pyc
 
-# Carpetas de trabajo de Gandalf (no queremos subirlas a la nube)
+# Carpetas de trabajo de Gandalf
 .gandalf_vault/
 quarantine/
 logs/
 
-# Archivo de estado local
+# Bases de datos de estado (Generadas por el programa)
 estado_base.json
+conocidos.json
 
 # Nuestra llave de desarrollo (es personal)
 DESARROLLO.txt
 
-# La información sensible
+# Información sensible
 .env
 
 # provisional
