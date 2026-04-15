@@ -7,7 +7,16 @@ import threading
 import time
 import vigilancia  # Asegúrate de que vigilancia.py está en la misma carpeta
 
-# --- 1. LÓGICA DE DISEÑO ---
+# --- LÓGICA DE OCULTAR/MOSTRAR ---
+def ocultar_ventana():
+    ventana.withdraw()
+
+def mostrar_ventana():
+    # Llama al icono de la bandeja
+    ventana.deiconify()
+    ventana.attributes("-topmost", True)
+
+# --- LÓGICA DE DISEÑO ---
 def degradar_gandalf(ancho, alto):
     # Definimos colores simples (R, G, B) para evitar errores de tuplas
     colores = [
@@ -32,7 +41,7 @@ def degradar_gandalf(ancho, alto):
     return img
 
 
-# --- 2. LÓGICA DE CONTROL (Placeholder y Funciones) ---
+# --- LÓGICA DE CONTROL (Placeholder y Funciones) ---
 def on_entry_click(event):
     if entrada_url.get() == 'Introduce URL sospechosa...':
         entrada_url.delete(0, tk.END)
@@ -70,7 +79,7 @@ def ejecutar_analisis(url, modo="Auto"):
     canvas.itemconfig(id_resultado, text=mensaje, fill=color)
 
 
-# --- 3. VIGILANCIA EN SEGUNDO PLANO ---
+# --- VIGILANCIA EN SEGUNDO PLANO ---
 def vigilar_en_segundo_plano():
     ultima_url = ""
     while True:
@@ -82,7 +91,7 @@ def vigilar_en_segundo_plano():
         time.sleep(3)
 
 
-# --- 4. CONFIGURACIÓN DE LA VENTANA ---
+# --- CONFIGURACIÓN DE LA VENTANA ---
 ventana = tk.Tk()
 ventana.title("Gandalf Security Panel 🛡️")
 ventana.geometry("550x350")  # Un poco más alta para que quepa bien el texto
@@ -122,7 +131,8 @@ id_resultado = canvas.create_text(250, 290, text="Esperando URL...",
                                   font=("Verdana", 10, 'bold'), width=450, fill="#2c3e50")
 
 # --- 5. INICIO DEL CENTINELA ---
-hilo = threading.Thread(target=vigilar_en_segundo_plano, daemon=True)
-hilo.start()
+# hilo = threading.Thread(target=vigilar_en_segundo_plano, daemon=True)
+# hilo.start()
 
-ventana.mainloop()
+ventana.protocol("WM_DELETE_WINDOW", ocultar_ventana)
+ventana.withdraw()
