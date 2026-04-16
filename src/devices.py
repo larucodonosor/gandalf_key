@@ -17,7 +17,7 @@ def cargar_conocidos():
     asegurar_archivo_db()
     try:
         with open(DB_USB, "r") as f:
-        return json.load(f)
+            return json.load(f)
     except:
         return []
 
@@ -32,5 +32,5 @@ def autorizar_nuevo_usb(id_usb, clave_introducida):
             conocidos.append(id_usb)
             with open(DB_USB, "w") as f:
                 json.dump(conocidos, f, indent=4)
-        return True, "✅ USB Autorizado con éxito."
-    return False, "❌ Clave incorrecta. Acceso denegado."
+        return True, " USB Autorizado con éxito."
+    return False, " Clave incorrecta. Acceso denegado."

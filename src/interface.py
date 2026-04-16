@@ -3,11 +3,10 @@ from tkinter import messagebox
 from PIL import Image, ImageTk, ImageFilter, ImageDraw
 import random
 import os
-import threading
 import time
-import vigilancia  # Asegúrate de que vigilancia.py está en la misma carpeta
+import vigilance
 
-# --- LÓGICA DE OCULTAR/MOSTRAR ---
+# LÓGICA DE OCULTAR/MOSTRAR
 def ocultar_ventana():
     ventana.withdraw()
 
@@ -16,9 +15,9 @@ def mostrar_ventana():
     ventana.deiconify()
     ventana.attributes("-topmost", True)
 
-# --- LÓGICA DE DISEÑO ---
+# LÓGICA DE DISEÑO
 def degradar_gandalf(ancho, alto):
-    # Definimos colores simples (R, G, B) para evitar errores de tuplas
+    # Definición de los colores
     colores = [
         (178, 206, 247), (136, 247, 181), (253, 253, 37, 186),
         (255, 186, 21, 222), (245, 195, 195), (221, 182, 247)
@@ -31,17 +30,15 @@ def degradar_gandalf(ancho, alto):
         for _ in range(9):
             radio = random.randint(30, 140)
             x, y = random.randint(0, ancho), random.randint(0, alto)
-            # Aquí está el truco: nos aseguramos de que sea (R, G, B, A)
             rgb = color[:3]
             alfa_val = color[3] if len(color) > 3 else 30
-            # color_con_alfa = (color[0], color[1], color[2], 30)
             dibujo.ellipse([x - radio, y - radio, x + radio, y + radio], fill=(*rgb, alfa_val))
         capa = capa.filter(ImageFilter.GaussianBlur(40))
         img.paste(capa, (0, 0), capa)
     return img
 
 
-# --- LÓGICA DE CONTROL (Placeholder y Funciones) ---
+# LÓGICA DE CONTROL (Placeholder y Funciones)
 def on_entry_click(event):
     if entrada_url.get() == 'Introduce URL sospechosa...':
         entrada_url.delete(0, tk.END)
@@ -63,7 +60,7 @@ def analizar_manual():
 
 
 def ejecutar_analisis(url, modo="Auto"):
-    resultado, informe = vigilancia.analizar_url(url)
+    resultado, informe = vigilance.analizar_url(url)
 
     color = "#1e6e06"  # Verde
     prefijo = "✓ SEGURO"
@@ -79,19 +76,19 @@ def ejecutar_analisis(url, modo="Auto"):
     canvas.itemconfig(id_resultado, text=mensaje, fill=color)
 
 
-# --- VIGILANCIA EN SEGUNDO PLANO ---
+# VIGILANCIA EN SEGUNDO PLANO
 def vigilar_en_segundo_plano():
     ultima_url = ""
     while True:
-        url_detectada = vigilancia.obtener_url_del_navegador()
+        url_detectada = vigilance.obtener_url_del_navegador()
         if url_detectada and url_detectada != ultima_url:
             ultima_url = url_detectada
-            # Actualizamos la interfaz de forma segura
+            # Actualiza la interfaz de forma segura
             ventana.after(0, lambda u=url_detectada: ejecutar_analisis(u, modo="Auto"))
         time.sleep(3)
 
 
-# --- CONFIGURACIÓN DE LA VENTANA ---
+# CONFIGURACIÓN DE LA VENTANA
 ventana = tk.Tk()
 ventana.title("Gandalf Security Panel 🛡️")
 ventana.geometry("550x350")  # Un poco más alta para que quepa bien el texto
@@ -129,10 +126,6 @@ canvas.create_window(250, 210, window=boton_analizar)
 # Resultado
 id_resultado = canvas.create_text(250, 290, text="Esperando URL...",
                                   font=("Verdana", 10, 'bold'), width=450, fill="#2c3e50")
-
-# --- 5. INICIO DEL CENTINELA ---
-# hilo = threading.Thread(target=vigilar_en_segundo_plano, daemon=True)
-# hilo.start()
 
 ventana.protocol("WM_DELETE_WINDOW", ocultar_ventana)
 ventana.withdraw()
