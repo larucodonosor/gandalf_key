@@ -30,7 +30,6 @@ def registrar_log(mensaje):
     with open("logs/historial.log", "a", encoding="utf-8") as archivo:
         archivo.write(linea)
 
-
 # CONSULTA A VIRUSTOTAL
 def check_virustotal(file_path):
     # Envía el archivo o su hash a VirusTotal para analizar.
@@ -73,7 +72,7 @@ def gritar_al_mundo(mensaje, nivel='INFO'):
 
 def request_remote_authorization(file_name, temp_path):
     # Envía un mensaje con botones interactivos a Telegram.
-    # El archivo ya está "secuestrado" en quarantine por watchdog.
+    # El archivo ya está "inhabilitado" en quarantine por watchdog.
     markup = InlineKeyboardMarkup()
 
     # Crea los botones con 'callback_data' para registrar la selección.
@@ -91,32 +90,51 @@ def request_remote_authorization(file_name, temp_path):
 
     bot.send_message(CHAT_ID, text, reply_markup=markup, parse_mode="Markdown")
 
+def request_work_mode_verification():
+    # Crea el diálogo  y botones de telegram para aceptar o no la solicitud de Working Mode
+    markup = InlineKeyboardMarkup()
+    btn_yes = InlineKeyboardButton("YES, it's me", callback_data="work_yes")
+    btn_no = InlineKeyboardButton("NO, Block!", callback_data="work_no")
+    markup.add(btn_yes, btn_no)
+
+    bot.send_message(CHAT_ID, "WORK MODE REQUESTED!!!\nVerify identity to pause guard:", reply_markup=markup,
+                     parse_mode="Markdown")
+
 # MANEJADOR DE RESPUESTAS (CALLBACKS)
 @bot.callback_query_handler(func=lambda call: True)
 def handle_query(call):
-    # Gandalf recibe la orden desde telegram.
-    action, filename = call.data.split("_")
-    # Busca el archivo en la carpeta temporal de espera
-    temp_path = os.path.join("quarantine", f"WAITING_{filename}")
+    #importación local, solo se activa si se pulsa el boton correspondiente
+    import working_mode_ctrl as wmc
 
-    if action == "quar":
-        # Mover a cuarentena definitiva (quitar prefijo WAITING_)
-        final_path = os.path.join("quarantine", filename)
-        if os.path.exists(temp_path):
-            os.rename(temp_path, final_path)
-            bot.edit_message_text(f"☣ `{filename}` secured in permanent quarantine.", CHAT_ID, call.message.message_id)
+    # Separación de la data
+    datos = call.data.split("_")
+    action = datos[0]
+    info = datos[1]
 
-    elif action == "allow":
-        # Restaurar a descargas usando la función de seguridad
-        if os.path.exists(temp_path):
-            success = security.restore_from_quarantine(temp_path, filename)
-            if success:
-                bot.edit_message_text(f"`{filename}` restored to Downloads.", CHAT_ID, call.message.message_id)
-            else:
-                bot.send_message(CHAT_ID, " Error restoring file.")
+    if action == "work":
+        if info == "yes":
+            wmc.update_work_mode_status(True)
+            bot.edit_message_text("Work Mode ON", CHAT_ID, call.message.message_id)
+        else:
+            wmc.update_work_mode_status(False)
+            bot.edit_message_text("Work Mode DENIED", CHAT_ID, call.message.message_id)
+
+    elif action == "quar" or action == "allow":
+        filename = info
+        temp_path = os.path.join("quarantine", f"WAITING_{filename}")
+
+        if action == "quar":
+            if os.path.exists(temp_path):
+                os.rename(temp_path, os.path.join("quarantine", filename))
+                bot.edit_message_text(f"☣ `{filename}` Quarantined", CHAT_ID, call.message.message_id)
+
+        elif action == "allow":
+            if os.path.exists(temp_path):
+                if security.restore_from_quarantine(temp_path, filename):
+                    bot.edit_message_text(f"`{filename}` Restored", CHAT_ID, call.message.message_id)
 
 # Función para arrancar el bot en main
 def start_bot_polling():
-    print("📡 Telegram Bot is listening for your commands...")
+    print("Telegram Bot is listening for your commands...")
     bot.infinity_polling()
 
