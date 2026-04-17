@@ -12,7 +12,16 @@ class DescargaHandler(FileSystemEventHandler):
             extension = os.path.splitext(file_path)[1].lower()
 
             # Solo vigila archivos potencialmente peligrosos
-            if extension in ['.exe', '.msi', '.zip', '.rar', '.bat']:
+            if extension in [
+                # ejecutables y Scripts
+                '.exe', '.msi', '.bat', '.sh', '.ps1',
+                # Comprimidos
+                '.zip', '.rar', '.7z', '.tar.gz',
+                # Multimedia
+                '.mp4', '.mkv', '.avi', '.mov',  # Video
+                '.mp3', '.wav', '.flac', '.aac',  # Audio
+                '.jpg', '.jpeg', '.png', '.gif', '.svg'  # Imagen
+                ]:
                 print(f"🕵️ Gandalf detectó nueva descarga: {os.path.basename(file_path)}")
                 self.procesar_archivo(file_path)
 
