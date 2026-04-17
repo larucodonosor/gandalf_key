@@ -5,6 +5,7 @@ import random
 import os
 import time
 import vigilance
+import working_mode_ctrl
 
 # LÓGICA DE OCULTAR/MOSTRAR
 def ocultar_ventana():
@@ -91,7 +92,17 @@ def vigilar_en_segundo_plano():
 # CONFIGURACIÓN DE LA VENTANA
 ventana = tk.Tk()
 ventana.title("Gandalf Security Panel 🛡️")
-ventana.geometry("550x350")  # Un poco más alta para que quepa bien el texto
+ventana.geometry("550x500")  # Un poco más alta para que quepa bien el texto
+
+# Botón modo trabajo
+btn_work_mode = tk.Button(
+    ventana,
+    text="🚫 WORK",
+    bg="red",
+    fg="white",
+    command=lambda: working_mode_ctrl.toggle_work_mode(btn_work_mode)
+)
+btn_work_mode.pack(pady=10)
 
 # Icono
 ruta_ico = os.path.join(os.path.dirname(__file__), "img", "gandalf_grey.ico")
@@ -100,10 +111,10 @@ try:
 except:
     pass
 
-canvas = tk.Canvas(ventana, width=550, height=380, highlightthickness=0)
+canvas = tk.Canvas(ventana, width=550, height=500, highlightthickness=0)
 canvas.pack(fill="both", expand=True)
 
-img_fondo_pil = degradar_gandalf(550, 380)
+img_fondo_pil = degradar_gandalf(550, 500)
 img_fondo = ImageTk.PhotoImage(img_fondo_pil)
 canvas.create_image(0, 0, anchor="nw", image=img_fondo)
 
