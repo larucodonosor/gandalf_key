@@ -1,5 +1,6 @@
 # Carpetas de configuración de PyCharm
 .idea/
+.idea_OLD/
 
 # Archivos temporales de Python
 **/__pycache__/
