@@ -1,0 +1,12 @@
+{
+  "treasure_types": {
+    "code": [".py", ".js", ".jsx", ".ts", ".tsx", ".html", ".css"],
+    "documents": [".docx", ".doc", ".pdf", ".txt", ".md", ".rtf"],
+    "data_config": [".json", ".env", ".yaml", ".ini", ".xml"]
+  },
+  "protected_folders": [
+    "Documents",
+    "Desktop",
+    "Projects"
+  ]
+}
