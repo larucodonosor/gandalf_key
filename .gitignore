@@ -21,5 +21,8 @@ DESARROLLO.txt
 # Información sensible
 .env
 
+# Secretos
+config/credentials.json
+
 # provisional
 Enreos.py
