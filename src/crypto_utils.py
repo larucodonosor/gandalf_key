@@ -2,7 +2,7 @@ from cryptography.fernet import Fernet
 import os
 
 
-# Cargamos la clave maestra o la genera si no existe
+# Carga la clave maestra o la genera si no existe
 def load_or_create_key():
     key_path = "config/sys_cache.bin"
     if os.path.exists(key_path):
@@ -26,8 +26,10 @@ def encrypt_file(file_path):
     return fernet.encrypt(file_data)
 
 
-def decrypt_data(encrypted_data):
+def decrypt_file(file_path):
     # Descifra datos usando la clave maestra.
     key = load_or_create_key()
     fernet = Fernet(key)
+    with open(file_path, 'rb') as f:
+        encrypted_data = f.read()
     return fernet.decrypt(encrypted_data)
