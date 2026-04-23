@@ -25,11 +25,15 @@ DESARROLLO.txt
 config/credentials.json
 config/token.pickle
 config/sys_cache.bin
+config/index.json
 
 # provisional
-Enreos.py
+src/Enreos.py
 
 # Archivos de prueba y temporales
 src/test_encryption.py
+src/test_restore.py
 archivo_prueba.txt
+archivo_recuperado.txt
+temp_download.encrypted
 *.tmp
