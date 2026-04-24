@@ -8,6 +8,8 @@ import tray_icon
 import alerts
 import security
 import interface
+import backup_manager
+from datetime import datetime
 from scanner import mapear_carpeta, validar_adn
 from server_g_k import app as server_app
 
@@ -16,42 +18,25 @@ TIEMPO_ESPERA = 30
 def ejecutar_gandalf():
     ruta = ["./", "./src"]
     archivo_memoria = "estado_base.json"
-    EXTENSIONES_IGNORAR = [".log", ".tmp", ".json"]
-    ARCHIVOS_IGNORAR = ["config.ini", "DESARROLLO.txt"]
-
     # 1. Escaneo actual
     estado_actual = {}
 
     # 2. Recorre cada ruta de la lista
     for r in ruta:
         # Escanea UNA carpeta y guarda el resultado temporalmente
-        resultado_carpeta = mapear_carpeta(r)
-
+        resultado = mapear_carpeta(r)
+        for archivo, datos in resultado.items():
+            # Solo si es un "tesoro", lo añadimos al estado_actual
+            if backup_manager.is_treasure_extension(archivo):
+                estado_actual[archivo] = datos
         # Mezcla lo que acaba de encontrar con el diccionario general
-        estado_actual.update(resultado_carpeta)
-
-        # Aplica el filtrado de archivos
-        estado_filtrado = {}
-        for archivo, datos in estado_actual.items():
-            es_ignorado = False
-
-          # Comprueba si termina en alguna extensión 'prohibida'
-            for ext in EXTENSIONES_IGNORAR:
-                if archivo.endswith(ext):
-                    es_ignorado = True
-
-          # Comprueba si el nombre exacto está en la lista negra
-            if os.path.basename(archivo) in ARCHIVOS_IGNORAR:
-                es_ignorado = True
-
-            if not es_ignorado:
-                estado_filtrado[archivo] = datos
+        estado_actual.update(resultado)
 
     # 3. Intenta cargar la memoria del pasado
     if not os.path.exists(archivo_memoria):
         # Si NO existe, guarda la primera copia y sale
         with open(archivo_memoria, "w") as f:
-            json.dump(estado_filtrado, f)
+            json.dump(estado_actual, f)
         return
 
     # 5. El Gran Comparador (La lógica de seguridad)
@@ -59,7 +44,7 @@ def ejecutar_gandalf():
     # 5.1. Si existe, lee y compara
         with open(archivo_memoria, "r") as f:
             memoria_pasada = json.load(f)
-        for archivo, datos_actuales in estado_filtrado.items():
+        for archivo, datos_actuales in estado_actual.items():
             if archivo not in memoria_pasada:
                 alerts.gritar_al_mundo(f" NUEVO ARCHIVO DETECTADO: {archivo}", nivel='INFO')
                 #Pasa por rayos X
@@ -108,7 +93,7 @@ def ejecutar_gandalf():
 
         # 5.2 Segundo Comparador: Detecta archivos borrados
         for archivo_viejo in memoria_pasada:
-            if archivo_viejo not in estado_filtrado:
+            if archivo_viejo not in estado_actual:
                 alerts.gritar_al_mundo(f"💀 ¡ALERTA! Archivo ELIMINADO: {archivo_viejo}", nivel='ALERTA')
                 alerts.registrar_log(f"Archivo desaparecido: {archivo_viejo}")
 
@@ -120,7 +105,17 @@ def ejecutar_gandalf():
 
     # 6. Actualiza la memoria
     with open(archivo_memoria, "w") as f:
-        json.dump(estado_filtrado, f, indent=4)  # El indent=4 lo hace legible
+        json.dump(estado_actual, f, indent=4)  # El indent=4 lo hace legible
+
+        # INTEGRACIÓN DEL BACKUP
+
+        today = datetime.today().weekday()
+        if today in [1, 4]:
+            print(" Es día de Backup. Iniciando...")
+            # Pasa la lista de archivos validados
+            backup_manager.run_scheduled_backup(list(estado_actual.keys()))
+        else:
+            print(f" Hoy es día {today}, no toca backup (Martes=1, Viernes=4).")
 
 # Vigila los dispositivos del sistema
 def bucle_infinito_vigilancia():
