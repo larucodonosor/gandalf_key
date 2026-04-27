@@ -14,6 +14,7 @@ logs/
 # Bases de datos de estado (Generadas por el programa)
 estado_base.json
 conocidos.json
+config_user.json
 
 # Nuestra llave de desarrollo (es personal)
 DESARROLLO.txt
@@ -26,6 +27,7 @@ config/credentials.json
 config/token.pickle
 config/sys_cache.bin
 config/index.json
+
 
 # provisional
 src/Enreos.py
