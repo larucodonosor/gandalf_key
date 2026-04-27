@@ -9,6 +9,7 @@ import alerts
 import security
 import interface
 import backup_manager
+import backup_scheduler
 from datetime import datetime
 from scanner import mapear_carpeta, validar_adn
 from server_g_k import app as server_app
@@ -107,16 +108,6 @@ def ejecutar_gandalf():
     with open(archivo_memoria, "w") as f:
         json.dump(estado_actual, f, indent=4)  # El indent=4 lo hace legible
 
-        # INTEGRACIÓN DEL BACKUP
-
-        today = datetime.today().weekday()
-        if today in [1, 4]:
-            print(" Es día de Backup. Iniciando...")
-            # Pasa la lista de archivos validados
-            backup_manager.run_scheduled_backup(list(estado_actual.keys()))
-        else:
-            print(f" Hoy es día {today}, no toca backup (Martes=1, Viernes=4).")
-
 # Vigila los dispositivos del sistema
 def bucle_infinito_vigilancia():
     global usbs_conocidos
@@ -167,4 +158,7 @@ if __name__ == "__main__":
     # 5. INTERFAZ (HILO PRINCIPAL)
     # Con ventana.withdraw() en interface.py, no sale la ventana al arrancar.
     interface.ventana.mainloop()
+
+    # 6. Lanza los backups periodizados
+    backup_scheduler.run_in_background()
 
