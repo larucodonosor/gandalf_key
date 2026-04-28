@@ -1,3 +1,4 @@
+pending_actions = {}
 import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 import requests
@@ -5,6 +6,8 @@ import os
 from datetime import datetime
 from dotenv import load_dotenv
 import security
+import integrity_utils
+import cloud_vault
 
 # Carga el archivo .env
 load_dotenv()
@@ -129,9 +132,45 @@ def handle_query(call):
                 bot.edit_message_text(f"☣ `{filename}` Quarantined", CHAT_ID, call.message.message_id)
 
         elif action == "allow":
-            if os.path.exists(temp_path):
-                if security.restore_from_quarantine(temp_path, filename):
-                    bot.edit_message_text(f"`{filename}` Restored", CHAT_ID, call.message.message_id)
+            # if os.path.exists(temp_path):
+                # if security.restore_from_quarantine(temp_path, filename):
+                    # bot.edit_message_text(f"`{filename}` Restored", CHAT_ID, call.message.message_id)
+            # 1. Recupera los datos del diccionario global
+            chat_id = call.message.chat.id
+            action_data = pending_actions.get(chat_id)
+
+            if not action_data:
+                bot.edit_message_text("❌ Error: Acción no encontrada.", CHAT_ID, call.message.message_id)
+                return
+
+            # 2. VERIFICACIÓN CRÍTICA DE INTEGRIDAD
+            # Usa el hash que se guardó al detectar el incidente
+            if not integrity_utils.verify_integrity(action_data["temp_path"], action_data["hash"]):
+                gritar_al_mundo("🚨 ¡INTENTO DE MANIPULACIÓN DETECTADO!", nivel="CRITICO")
+                bot.edit_message_text("❌ Error: El archivo ha sido manipulado. Abortando.", CHAT_ID,
+                                      call.message.message_id)
+                return
+
+            # 3. LÓGICA DE RESTAURACIÓN SEGÚN ORIGEN
+            success = False
+            if action_data["source"] == "LOCAL":
+                # Restaurar desde quarantine
+                success = security.restore_from_quarantine(action_data["temp_path"], action_data["filename"])
+
+            elif action_data["source"] == "CLOUD":
+                # Restaurar desde Drive (necesitas importar cloud_vault)
+                import cloud_vault
+                success = cloud_vault.download_and_decrypt(action_data["file_id"], action_data["original_path"])
+
+            # 4. Finalización
+            if success:
+                bot.edit_message_text(f"✅ `{action_data['filename']}` Restaurado con éxito.", CHAT_ID,
+                                      call.message.message_id)
+                pending_actions.pop(chat_id)  # Limpia el registro
+            else:
+                bot.edit_message_text(f"❌ Error al restaurar `{action_data['filename']}`", CHAT_ID,
+                                      call.message.message_id)
+
 
 # Función para arrancar el bot en main
 def start_bot_polling():

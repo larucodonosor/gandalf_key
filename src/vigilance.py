@@ -23,13 +23,13 @@ def analizar_url(url):
     try:
         respuesta = requests.get(endpoint, headers=headers)
 
-        # Si la URL es nueva y VT no la tiene, hay que pedirle que la escanee
+        # Si la URL es nueva y VT no la tiene, se solicita un escaneo
         if respuesta.status_code == 404:
             return "DESCONOCIDO", "URL no analizada previamente. ¡Cuidado!"
 
         datos = respuesta.json()
 
-        # Sacamos las estadísticas de los 70 antivirus
+        # Saca las estadísticas de los 70 antivirus
         stats = datos['data']['attributes']['last_analysis_stats']
         maliciosos = stats['malicious']
         sospechosos = stats['suspicious']
@@ -46,12 +46,12 @@ def analizar_url(url):
 
 
 def obtener_url_del_navegador():
-    """Detecta si hay una URL en el título de la ventana activa."""
+    # Detecta si hay una URL en el título de la ventana activa.
     try:
         ventana_activa = gw.getActiveWindow()
         if ventana_activa:
             titulo = ventana_activa.title
-            # Buscamos patrones típicos de URLs en el título
+            # Busca patrones típicos de URLs en el título
             if "http" in titulo.lower() or "www." in titulo.lower():
                 palabras = titulo.split()
                 for p in palabras:
