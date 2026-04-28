@@ -10,8 +10,8 @@ import security
 import interface
 import backup_manager
 import backup_scheduler
-from datetime import datetime
-from scanner import mapear_carpeta, validar_adn
+import integrity_utils
+from scanner import mapear_carpeta
 from server_g_k import app as server_app
 
 TIEMPO_ESPERA = 30
@@ -49,7 +49,7 @@ def ejecutar_gandalf():
             if archivo not in memoria_pasada:
                 alerts.gritar_al_mundo(f" NUEVO ARCHIVO DETECTADO: {archivo}", nivel='INFO')
                 #Pasa por rayos X
-                es_seguro, mensaje_adn = validar_adn(archivo)
+                es_seguro, mensaje_adn = integrity_utils.validar_adn(archivo)
 
                 if not es_seguro:
                     alerts.registrar_log(mensaje_adn)
@@ -78,8 +78,22 @@ def ejecutar_gandalf():
                     ruta_vault = os.path.join(".gandalf_vault", nombre_base)
                     shutil.copy2(archivo, ruta_vault)
                 else:
-                    # Si es ataque, llama a security.py
-                    security.restaurar_archivo(archivo)
+                    # 1. Mueve a cuarentena preventiva
+                    os.makedirs('quarantine', exist_ok=True)
+                    temp_path = os.path.join("quarantine", f"WAITING_{nombre_base}")
+                    shutil.copy2(archivo, temp_path)  # Copia para analizar
+
+                    # 2. Registra en la memoria de alertas (PENDING ACTIONS)
+                    alerts.pending_actions[alerts.CHAT_ID] = {
+                        "source": "LOCAL",
+                        "filename": nombre_base,
+                        "hash": datos_actuales["hash"],  # Guarda la huella original
+                        "temp_path": temp_path,
+                        "original_path": archivo
+                    }
+
+                    # 3. Lanza la petición al usuario
+                    alerts.request_remote_authorization(nombre_base, temp_path)
 
             elif (datos_actuales["tamano"] == memoria_pasada[archivo]["tamano"]) and \
              (datos_actuales["modificado"] == memoria_pasada[archivo]["modificado"]):

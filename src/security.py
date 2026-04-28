@@ -39,7 +39,7 @@ def obtener_unidades_removibles():
 
 # AVISOS DEL SISTEMA
 def advertencia_visual(url, nivel= "BLOQUEAR"):
-    # Configuramos la interfaz de Tkinter
+    # Configuraverify_integrity la interfaz de Tkinter
     root = tk.Tk()
     root.withdraw()
     root.attributes("-topmost", True) # Esto hace que salga por encima de todo
