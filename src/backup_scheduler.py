@@ -1,36 +1,46 @@
 import json
 import time
 import threading
-import schedule  # Si no lo tienes: pip install schedule
+import schedule
 import backup_manager
+import logger_manager
+import config_manager
 from datetime import datetime
 
 CONFIG_PATH = "config_user.json"
 ESTADO_PATH = "estado_base.json"
 
-def cargar_config():
-    with open(CONFIG_PATH, "r") as f:
-        return json.load(f)["backup"]
-
 def job_backup():
-    config = cargar_config()
+    # Configura el logger
+    logger_manager.setup_logger()
+
+    config = config_manager.cargar_config()["backup"]
     if not config["enabled"]:
         return
-    print(f"[{datetime.now()}] Backup finalizado.")
+
+    # Limpieza de logs antiguos ANTES de hacer nada
+    retention_days = config["retention_days", 30] # 30 es valor por defecto
+    logger_manager.clean_old_logs(retention_days)
+
+    # Log de inicio del proceso
+    logger_manager.log_info("Iniciando backup programado...")
+
     try:
         with open(ESTADO_PATH, "r") as f:
             estado_actual = json.load(f)
 
-        # backup_manager ya tiene la lógica de subida,
-        # Toma la lista de archivos que existen
+        # Toma la lista de archivos que existen y llama a backup_manager que tiene la lógica de subida
         archivos = list(estado_actual.keys())
         backup_manager.run_scheduled_backup(archivos)
-        print(f"[{datetime.now()}] Backup finalizado.")
+        # Log de éxito
+        logger_manager.log_info(f"Backup finalizado con éxito: {len(archivos)} archivos procesados.")
     except Exception as e:
-        print(f"Error en el backup programado: {e}")
+        # Log de error (si algo falla, queda registrado)
+        error_msg = f"Error en el backup programado: {str(e)}"
+        logger_manager.log_error(error_msg)
 
 def start_backup_scheduler():
-    config = cargar_config()
+    config = config_manager.cargar_config()["backup"]
 
     # Programación dinámica basada en el config_user.json
     for day in config["days"]:
