@@ -1,8 +1,15 @@
 import tkinter as tk
 from tkinter import messagebox
+import keyring
 import config_manager
 
 def save_changes():
+    # Compara la contraseña creada y su confirmación
+    password = entry_mk.get()
+    confirm = entry_ck.get()
+    if password != confirm:
+        messagebox.showerror("Las contraseñas no coinciden")
+        return
 
     try:
         selected_days = [day for day, var in check_vars.items() if var.get() == 1]
@@ -34,6 +41,14 @@ def save_changes():
             "time": hour  # Ejemplo: "03:00"
         }
     }
+
+    # Guarda las claves fuera del JSON por seguridad
+    keyring.set_password("Gandalf_Guard", "VT_API_KEY", entry_vt.get())
+    keyring.set_password("Gandalf_Guard", "TELEGRAM_TOKEN", entry_tel.get())
+    keyring.set_password("Gandalf_Guard", "CHAT_ID", entry_ci.get())
+    keyring.set_password("Gandalf_Guard", "MASTER_KEY", entry_mk.get())
+    keyring.set_password("Gandalf_Guard", "Confirm_KEY", entry_ck.get())
+
     config_manager.guardar_config(config)
     messagebox.showinfo("Gandalf", "Configuración actualizada correctamente.")
     root.destroy()
@@ -41,7 +56,7 @@ def save_changes():
 # Configura la interfaz
 root = tk.Tk()
 root.title("Configuración de Gandalf")
-root.geometry("300x400")
+root.geometry("350x600")
 
 # Carga la config actual
 current_config = config_manager.cargar_config()["backup"]
@@ -69,6 +84,28 @@ retention_var = tk.StringVar(root)
 retention_var.set(str(current_config.get("retention_days", 30)))
 dropdown = tk.OptionMenu(root, retention_var, *retention_options)
 dropdown.pack()
+
+# Claves de API y personales:
+tk.Label(root, text='API_KEY de Virus Total:').pack(pady=5)
+entry_vt = tk.Entry(root)
+entry_vt.insert(0, current_config.get("VT_API_KEY", ""))
+entry_vt.pack()
+tk.Label(root, text='Token de Telegram:').pack(pady=5)
+entry_tel = tk.Entry(root)
+entry_tel.insert(0, current_config.get("TELEGRAM_TOKEN", ""))
+entry_tel.pack()
+tk.Label(root, text='Chat ID de Telegram').pack(pady=5)
+entry_ci = tk.Entry(root)
+entry_ci.insert(0, current_config.get("CHAT_ID", ""))
+entry_ci.pack()
+tk.Label(root, text='Crea tu contraseña para operar con Gandalf').pack(pady=5)
+entry_mk = tk.Entry(root)
+entry_mk.insert(0, current_config.get("MASTER_KEY", ""))
+entry_mk.pack()
+tk.Label(root, text='Confirmación de contraseña').pack(pady=5)
+entry_ck = tk.Entry(root)
+entry_ck.pack()
+
 
 # Botón de guardado
 tk.Button(root, text="Guardar Cambios", command=save_changes).pack(pady=20)
