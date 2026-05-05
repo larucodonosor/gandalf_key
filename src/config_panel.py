@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import messagebox
+from tkinter import ttk
 import keyring
 import webbrowser
 import config_manager
@@ -14,9 +15,9 @@ def save_changes():
 
     try:
         selected_days = [day for day, var in check_vars.items() if var.get() == 1]
-        hour = entry_hora.get()
+        hour = entry_hour.get()
         # Captura la preferencia de tiempo de retención del user.
-        retention = int(retention_var.get())
+        retention = int(dropdown.get())
 
         config = {
             "backup": {
@@ -42,80 +43,108 @@ def save_changes():
 
 # Configura la interfaz
 root = tk.Tk()
+root.option_add("*Label.font", "Arial 10 bold")
 root.title("Configuración de Gandalf")
-root.geometry("350x600")
+root.geometry("430x800")
 
 # Carga la config actual
 current_config = config_manager.cargar_config()["backup"]
 
 # Días
-tk.Label(root, text="Días de Backup:").pack(pady=5)
+frame_backup = tk.Frame(root)
+frame_backup.pack(pady=10)
+
+frame_days = tk.Frame(frame_backup)
+frame_days.grid(row=0, column=0, padx=20)
+tk.Label(frame_days, text="Días de Backup:", font=('Arial', 10, 'bold')).pack()
 check_vars = {}
 week_days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
 
 for day in week_days:
     var = tk.IntVar(value=1 if day in current_config["days"] else 0)
     check_vars[day] = var
-    tk.Checkbutton(root, text=day.capitalize(), variable=var).pack(anchor="w")
+    tk.Checkbutton(frame_days, text=day.capitalize(), variable=var).pack(anchor="w")
 
 # Hora
-tk.Label(root, text="Hora (HH:MM):").pack(pady=10)
-entry_hora = tk.Entry(root)
-entry_hora.insert(0, current_config["time"])
-entry_hora.pack()
+frame_hour = tk.Frame(frame_backup)
+frame_hour.grid(row=0, column=1, sticky="n")
+tk.Label(frame_hour, text="Hora (HH:MM):", font=('Arial', 10, 'bold')).pack(pady=5)
+entry_hour = tk.Entry(frame_hour, width=10)
+entry_hour.insert(0, current_config["time"])
+entry_hour.pack()
 
 # Tiempo de retención
 tk.Label(root, text="Días de retención de logs:").pack(pady=5)
 retention_options = [15, 30, 45]
-retention_var = tk.StringVar(root)
-retention_var.set(str(current_config.get("retention_days", 30)))
-dropdown = tk.OptionMenu(root, retention_var, *retention_options)
-dropdown.pack()
+dropdown = ttk.Combobox(root, values=retention_options, state="readonly", width=10)
+dropdown.set(current_config.get("retention_days", 30))
+dropdown.pack(pady=5)
 
 # Claves de API y personales:
+def toggle_visibility(entry_field, button_widget):
+    if entry_field.cget('show') == '':
+        entry_field.config(show='🫧')
+        button_widget.config(text='Mostrar 🪄')
+    else:
+        entry_field.config(show='')
+        button_widget.config(text='Ocultar 🙈')
+
+frame_pssw = tk.Frame(root)
+frame_pssw.pack(pady=5)
 def open_help_vt(event):
     webbrowser.open_new("https://www.virustotal.com/gui/my-apikey")
-tk.Label(root, text='API_KEY de Virus Total:').pack(pady=5)
-entry_vt = tk.Entry(root)
+tk.Label(frame_pssw, text='API_KEY de Virus Total:').grid(row=0, column=0, pady=5)
+entry_vt = tk.Entry(frame_pssw, show='🫧', width=50)
 entry_vt.insert(0, current_config.get("VT_API_KEY", ""))
-entry_vt.pack()
+entry_vt.grid(row=1, column=0)
 # Crea el Label que parece un link
-link_vt = tk.Label(root, text="¿Cómo obtener mi API Key de VirusTotal?", fg="blue", cursor="hand2")
-link_vt.pack()
-# Ata el clic del ratón (Button-1) a la función
+link_vt = tk.Label(frame_pssw, text="¿Cómo obtener mi API Key de VirusTotal?", fg="blue", cursor="hand2")
+link_vt.grid(row=2, column=0)
+# Ata el clic del ratón (Button-1) a la función; (Button -1) == click izquierdo.
 link_vt.bind("<Button-1>", open_help_vt)
+btn_show = tk.Button(frame_pssw, text='Mostrar 🪄', command=lambda: toggle_visibility(entry_vt, btn_show))
+btn_show.grid(row=1, column=1, pady=5, padx=5)
 
 def open_help_tel(event):
     webbrowser.open_new("https://core.telegram.org/bots/api")
-tk.Label(root, text='Token de Telegram:').pack(pady=5)
-entry_tel = tk.Entry(root)
+tk.Label(frame_pssw, text='Token de Telegram:').grid(row=3, column=0, pady=5)
+entry_tel = tk.Entry(frame_pssw, show='🫧', width=50)
 entry_tel.insert(0, current_config.get("TELEGRAM_TOKEN", ""))
-entry_tel.pack()
-# Crea el Label que parece un link
-link_tel = tk.Label(root, text="¿Cómo obtener mi Token de Telegram?", fg="blue", cursor="hand2")
-link_tel.pack()
-# Ata el clic del ratón (Button-1) a la función
+entry_tel.grid(row=4, column=0)
+# Label/link
+link_tel = tk.Label(frame_pssw, text="¿Cómo obtener mi Token de Telegram?", fg="blue", cursor="hand2")
+link_tel.grid(row=5, column=0)
+# Ata el clic
 link_tel.bind("<Button-1>", open_help_tel)
+btn_open = tk.Button(frame_pssw, text='Mostrar 🪄', command=lambda: toggle_visibility(entry_tel, btn_open))
+btn_open.grid(row=4, column=1 ,pady=5, padx=5)
 
 def open_help_ci(event):
     webbrowser.open_new("https://t.me/userinfobot")
-tk.Label(root, text='Chat ID de Telegram').pack(pady=5)
-entry_ci = tk.Entry(root)
+tk.Label(frame_pssw, text='Chat ID de Telegram').grid(row=6, column=0, pady=5)
+entry_ci = tk.Entry(frame_pssw, show='🫧', width=50)
 entry_ci.insert(0, current_config.get("CHAT_ID", ""))
-entry_ci.pack()
-# Crea el Label que parece un link
-link_ci = tk.Label(root, text="¿Cómo obtener mi chat id de telegram?", fg="blue", cursor="hand2")
-link_ci.pack()
+entry_ci.grid(row=7, column=0)
+# Crea el Label/link
+link_ci = tk.Label(frame_pssw, text="¿Cómo obtener mi chat id de telegram?", fg="blue", cursor="hand2")
+link_ci.grid(row=8, column=0)
 # Ata el clic del ratón (Button-1) a la función
 link_ci.bind("<Button-1>", open_help_ci)
-tk.Label(root, text='Crea tu contraseña para operar con Gandalf').pack(pady=5)
-entry_mk = tk.Entry(root)
-entry_mk.insert(0, current_config.get("MASTER_KEY", ""))
-entry_mk.pack()
-tk.Label(root, text='Confirmación de contraseña').pack(pady=5)
-entry_ck = tk.Entry(root)
-entry_ck.pack()
+btn_tgl = tk.Button(frame_pssw, text='Mostrar 🪄', command=lambda: toggle_visibility(entry_ci, btn_tgl))
+btn_tgl.grid(row=7, column=1 ,pady=5, padx=5)
 
+tk.Label(frame_pssw, text='Crea tu contraseña para operar con Gandalf').grid(row=9, column=0, pady=5)
+entry_mk = tk.Entry(frame_pssw, show='🫧', width=30)
+entry_mk.insert(0, current_config.get("MASTER_KEY", ""))
+entry_mk.grid(row=10, column=0)
+btn_eye = tk.Button(frame_pssw, text='Mostrar 🪄', command=lambda: toggle_visibility(entry_mk, btn_eye))
+btn_eye.grid(row=10, column=1,pady=5, padx=5)
+
+tk.Label(frame_pssw, text='Confirmación de contraseña').grid(row=11, column=0, pady=5)
+entry_ck = tk.Entry(frame_pssw, show='🫧', width=30)
+entry_ck.grid(row=12, column=0)
+btn_check = tk.Button(frame_pssw, text='Mostrar 🪄', command=lambda: toggle_visibility(entry_ck, btn_check))
+btn_check.grid(row=12, column=1, pady=5, padx=5)
 
 # Botón de guardado
 tk.Button(root, text="Guardar Cambios", command=save_changes).pack(pady=20)
