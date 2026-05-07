@@ -22,6 +22,9 @@ DESARROLLO.txt
 # Información sensible
 .env
 
+# Entorno virtual
+.venv/
+
 # Secretos
 config/credentials.json
 config/token.pickle

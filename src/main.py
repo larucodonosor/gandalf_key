@@ -47,13 +47,13 @@ def ejecutar_gandalf():
             memoria_pasada = json.load(f)
         for archivo, datos_actuales in estado_actual.items():
             if archivo not in memoria_pasada:
-                alerts.gritar_al_mundo(f" NUEVO ARCHIVO DETECTADO: {archivo}", nivel='INFO')
+                alerts.light_the_beacons(f" NUEVO ARCHIVO DETECTADO: {archivo}", nivel='INFO')
                 #Pasa por rayos X
                 es_seguro, mensaje_adn = integrity_utils.validar_adn(archivo)
 
                 if not es_seguro:
-                    alerts.registrar_log(mensaje_adn)
-                    alerts.gritar_al_mundo(f'BLOQUEO DE EMERGENCIA: {archivo} por camuflaje de ADN', nivel='CRITICO')
+                    alerts.log_activity(mensaje_adn)
+                    alerts.light_the_beacons(f'BLOQUEO DE EMERGENCIA: {archivo} por camuflaje de ADN', nivel='CRITICO')
 
                 #BLOQUEO: Lo mueve a cuarentena y lo borra del sitio original
                     os.makedirs('quarantine', exist_ok=True)
@@ -69,8 +69,8 @@ def ejecutar_gandalf():
 
                 # 1. Registro y grito (llama a alerts.py)
 
-                alerts.registrar_log(f'Modificación detectada en: {archivo}')
-                alerts.gritar_al_mundo(f"¡INTRUSO! El archivo {nombre_base} ha sido modificado.", nivel='CRITICO')
+                alerts.log_activity(f'Modificación detectada en: {archivo}')
+                alerts.light_the_beacons(f"¡INTRUSO! El archivo {nombre_base} ha sido modificado.", nivel='CRITICO')
 
                 # 2. Protocolo de Decisión (Aquí está la clave)
                 if os.path.isfile("DESARROLLO.txt"):
@@ -101,7 +101,7 @@ def ejecutar_gandalf():
                 # CHEQUEO DE ADN SECRETO
 
                 if datos_actuales["adn_muestra"] != memoria_pasada[archivo].get("adn_muestra"):
-                    alerts.gritar_al_mundo(f"🚨 ¡ALERTA DE SUPLANTACIÓN! El ADN en la posición secreta ha cambiado en {archivo}", nivel='CRITICO')
+                    alerts.light_the_beacons(f"🚨 ¡ALERTA DE SUPLANTACIÓN! El ADN en la posición secreta ha cambiado en {archivo}", nivel='CRITICO')
                   # Aquí dispara la cuarentena
                 else:
                     continue
@@ -109,14 +109,14 @@ def ejecutar_gandalf():
         # 5.2 Segundo Comparador: Detecta archivos borrados
         for archivo_viejo in memoria_pasada:
             if archivo_viejo not in estado_actual:
-                alerts.gritar_al_mundo(f"💀 ¡ALERTA! Archivo ELIMINADO: {archivo_viejo}", nivel='ALERTA')
-                alerts.registrar_log(f"Archivo desaparecido: {archivo_viejo}")
+                alerts.light_the_beacons(f"💀 ¡ALERTA! Archivo ELIMINADO: {archivo_viejo}", nivel='ALERTA')
+                alerts.log_activity(f"Archivo desaparecido: {archivo_viejo}")
 
                 security.restaurar_archivo(archivo_viejo)
 
     except Exception as e:
         print(f"🕵️‍♂️ Gandalf detected a disturbance in the Force: {e}")
-        alerts.registrar_log(f"Error en el escaneo: {e}")
+        alerts.log_activity(f"Error en el escaneo: {e}")
 
     # 6. Actualiza la memoria
     with open(archivo_memoria, "w") as f:
@@ -133,12 +133,12 @@ def bucle_infinito_vigilancia():
         # ¿Hay alguno más?
         if len(usbs_actuales) > len(usbs_conocidos):
             nuevos = [u for u in usbs_actuales if u not in usbs_conocidos]
-            alerts.gritar_al_mundo(f"⚠️ ¡OJO! Nuevo hardware detectado: {nuevos}")
+            alerts.light_the_beacons(f"⚠️ ¡OJO! Nuevo hardware detectado: {nuevos}")
             usbs_conocidos = usbs_actuales  # Actualiza la memoria
 
         # ¿Falta alguno?
         elif len(usbs_actuales) < len(usbs_conocidos):
-            alerts.gritar_al_mundo("ℹ️ Dispositivo extraído.")
+            alerts.light_the_beacons("ℹ️ Dispositivo extraído.")
             usbs_conocidos = usbs_actuales
 
         sys.stdout.write(". ")
