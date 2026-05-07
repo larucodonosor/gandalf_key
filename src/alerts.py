@@ -7,7 +7,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 import security
 import integrity_utils
-import cloud_vault
+import network_utils
 
 # Carga el archivo .env
 load_dotenv()
@@ -20,18 +20,18 @@ VT_API_KEY = os.getenv("VIRUSTOTAL_API_KEY")
 bot = telebot.TeleBot(TOKEN)
 
 # UTILIDADES
-def ofuscar_mensaje(texto, clave=13):
-    resultado = ""
-    for letra in texto:
-        resultado += chr(ord(letra) ^ clave)
-    return resultado
+def obfuscate_message(text, key=13):
+    result = ""
+    for letter in text:
+        result += chr(ord(letter) ^ key)
+    return result
 
-def registrar_log(mensaje):
-    fecha_hora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    mensaje_secreto = ofuscar_mensaje(mensaje, 13)
-    linea = f"[{fecha_hora}] {mensaje_secreto}\n"
-    with open("logs/historial.log", "a", encoding="utf-8") as archivo:
-        archivo.write(linea)
+def log_activity(message):
+    date_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    secret_message = obfuscate_message(message, 13)
+    line = f"[{date_time}] {secret_message}\n"
+    with open("logs/historial.log", "a", encoding="utf-8") as file:
+        file.write(line)
 
 # CONSULTA A VIRUSTOTAL
 def check_virustotal(file_path):
@@ -44,8 +44,11 @@ def check_virustotal(file_path):
     headers = {"x-apikey": VT_API_KEY}
 
     try:
+        with open(file_path, "rb") as f:
+            files = {"file": f}
+            response = network_utils.retry_request(lambda: requests.post(url, files=files, headers=headers, timeout=15))
+
         # Nota al futuro: implementar primero chequeo de HASH para ahorrar tiempo/cuota
-        response = requests.post(url, files=files, headers=headers, timeout=15)
         if response.status_code == 200:
             analysis_id = response.json()["data"]["id"]
             return "ANALYZING", f"ID: {analysis_id}"
@@ -53,25 +56,26 @@ def check_virustotal(file_path):
     except Exception as e:
         return "ERROR", str(e)
 
-def gritar_al_mundo(mensaje, nivel='INFO'):
+def light_the_beacons(message, severity='INFO'):
     # Recibe un mensaje y un NIVEL de gravedad.
     # Niveles: INFO (solo log), ALERTA (consola), CRITICO (servidor)
-    PROCEDIMIENTOS = {
+    PROCEDURES = {
         "INFO": "ℹ️ INFO",
         "ALERTA": "⚠️ ATENCIÓN",
         "CRITICO": "🚨 EMERGENCIA CRÍTICA",
         "DEBUG": "🔍 DEPURACIÓN"
     }
     # 1. Siempre registra en el log
-    registrar_log(f"[{nivel}] {mensaje}")
+    log_activity(f"[{severity}] {message}")
 
     # 2. FILTRADO INTELIGENTE:
-    if nivel in ["ALERTA", "CRITICO", "DEBUG"]:
-        prefijo = PROCEDIMIENTOS.get(nivel, "SISTEMA")
-        print(f"{prefijo}: {mensaje}")
+    if severity in ["ALERTA", "CRITICO", "DEBUG"]:
+        prefix = PROCEDURES.get(severity, "SISTEMA")
+        print(f"{prefix}: {message}")
 
-    if nivel == "CRITICO":
-        bot.send_message(CHAT_ID, f"🚨 **GANDALF CRITICAL ALERT**\n\n{mensaje}", parse_mode="Markdown")
+    if severity == "CRITICO":
+        network_utils.retry_request(
+            lambda: bot.send_message(CHAT_ID, f"🚨 **GANDALF CRITICAL ALERT**\n\n{message}", parse_mode="Markdown"))
 
 def request_remote_authorization(file_name, temp_path):
     # Envía un mensaje con botones interactivos a Telegram.
@@ -90,8 +94,7 @@ def request_remote_authorization(file_name, temp_path):
         f"Status: **Locked in Quarantine**\n\n"
         f"What should I do?"
     )
-
-    bot.send_message(CHAT_ID, text, reply_markup=markup, parse_mode="Markdown")
+    network_utils.retry_request(lambda: bot.send_message(CHAT_ID, text, reply_markup=markup, parse_mode="Markdown"))
 
 def request_work_mode_verification():
     # Crea el diálogo  y botones de telegram para aceptar o no la solicitud de Working Mode
@@ -146,7 +149,7 @@ def handle_query(call):
             # 2. VERIFICACIÓN CRÍTICA DE INTEGRIDAD
             # Usa el hash que se guardó al detectar el incidente
             if not integrity_utils.verify_integrity(action_data["temp_path"], action_data["hash"]):
-                gritar_al_mundo("🚨 ¡INTENTO DE MANIPULACIÓN DETECTADO!", nivel="CRITICO")
+                light_the_beacons("🚨 ¡INTENTO DE MANIPULACIÓN DETECTADO!", severity="CRITICO")
                 bot.edit_message_text("❌ Error: El archivo ha sido manipulado. Abortando.", CHAT_ID,
                                       call.message.message_id)
                 return
