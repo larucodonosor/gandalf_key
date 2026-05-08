@@ -11,12 +11,13 @@ import interface
 import backup_manager
 import backup_scheduler
 import integrity_utils
-from scanner import mapear_carpeta
+import scanner
 from server_g_k import app as server_app
+import updater
 
-TIEMPO_ESPERA = 30
+WAIT_TIME = 30
 
-def ejecutar_gandalf():
+def execute_gandalf():
     ruta = ["./", "./src"]
     archivo_memoria = "estado_base.json"
     # 1. Escaneo actual
@@ -25,7 +26,7 @@ def ejecutar_gandalf():
     # 2. Recorre cada ruta de la lista
     for r in ruta:
         # Escanea UNA carpeta y guarda el resultado temporalmente
-        resultado = mapear_carpeta(r)
+        resultado = scanner.mapear_carpeta(r)
         for archivo, datos in resultado.items():
             # Solo si es un "tesoro", lo añadimos al estado_actual
             if backup_manager.is_treasure_extension(archivo):
@@ -126,7 +127,7 @@ def ejecutar_gandalf():
 def bucle_infinito_vigilancia():
     global usbs_conocidos
     while True:
-        ejecutar_gandalf()
+        execute_gandalf()
 
         usbs_actuales = security.obtener_unidades_removibles()
         # ... Lógica de comparación de USBs
@@ -143,10 +144,10 @@ def bucle_infinito_vigilancia():
 
         sys.stdout.write(". ")
         sys.stdout.flush()
-        time.sleep(TIEMPO_ESPERA)
+        time.sleep(WAIT_TIME)
 
 if __name__ == "__main__":
-    print("🛡️ Gandalf ha iniciado su guardia silenciosa...")
+    print(f"🛡️ Gandalf v{updater.CURRENT_VERSION} iniciando guardia...")
 
     # 1. Hilo de telegram (Polling)
     # daemon=True para que se cierre si se cierra el programa principal
