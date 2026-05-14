@@ -1,13 +1,16 @@
-pending_actions = {}
 import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 import requests
 import os
-from datetime import datetime
 from dotenv import load_dotenv
 import security
 import integrity_utils
 import network_utils
+import logging
+
+logger = logging.getLogger(__name__)
+
+pending_actions = {}
 
 # Carga el archivo .env
 load_dotenv()
@@ -18,20 +21,6 @@ CHAT_ID = os.getenv("CHAT_ID_TELEGRAM")
 VT_API_KEY = os.getenv("VIRUSTOTAL_API_KEY")
 
 bot = telebot.TeleBot(TOKEN)
-
-# UTILIDADES
-def obfuscate_message(text, key=13):
-    result = ""
-    for letter in text:
-        result += chr(ord(letter) ^ key)
-    return result
-
-def log_activity(message):
-    date_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    secret_message = obfuscate_message(message, 13)
-    line = f"[{date_time}] {secret_message}\n"
-    with open("logs/historial.log", "a", encoding="utf-8") as file:
-        file.write(line)
 
 # CONSULTA A VIRUSTOTAL
 def check_virustotal(file_path):
@@ -54,6 +43,7 @@ def check_virustotal(file_path):
             return "ANALYZING", f"ID: {analysis_id}"
         return "FAILED", f"Status: {response.status_code}"
     except Exception as e:
+        logger.error(f"Error en el análisis de VirusTotal para {file_path}: {e}")
         return "ERROR", str(e)
 
 def light_the_beacons(message, severity='INFO'):
@@ -65,17 +55,27 @@ def light_the_beacons(message, severity='INFO'):
         "CRITICO": "🚨 EMERGENCIA CRÍTICA",
         "DEBUG": "🔍 DEPURACIÓN"
     }
-    # 1. Siempre registra en el log
-    log_activity(f"[{severity}] {message}")
-
+    # 1. Siempre registra el log según severidad
+    if severity == "CRITICO":
+        logger.critical(message)
+    elif severity == "ALERTA":
+        logger.warning(message)
+    elif severity == "DEBUG":
+        logger.debug(message)
+    else:
+        logger.info(message)
+    logger.info(f"[{severity}] {message}")
     # 2. FILTRADO INTELIGENTE:
     if severity in ["ALERTA", "CRITICO", "DEBUG"]:
         prefix = PROCEDURES.get(severity, "SISTEMA")
         print(f"{prefix}: {message}")
 
     if severity == "CRITICO":
-        network_utils.retry_request(
-            lambda: bot.send_message(CHAT_ID, f"🚨 **GANDALF CRITICAL ALERT**\n\n{message}", parse_mode="Markdown"))
+        try:
+            network_utils.retry_request(
+                lambda: bot.send_message(CHAT_ID, f"🚨 **GANDALF ALERTA CRÍTICA**\n\n{message}", parse_mode="Markdown"))
+        except Exception as e:
+            logger.critical(f"No se pudo enviar la alerta crítica a Telegram: {e}")
 
 def request_remote_authorization(file_name, temp_path):
     # Envía un mensaje con botones interactivos a Telegram.
@@ -89,10 +89,10 @@ def request_remote_authorization(file_name, temp_path):
     markup.add(btn_quarantine, btn_allow)
 
     text = (
-        f"🛡️ **GANDALF INTERCEPTION**\n\n"
-        f"Suspicious file detected in Downloads: `{file_name}`\n"
-        f"Status: **Locked in Quarantine**\n\n"
-        f"What should I do?"
+        f"🛡️ **GANDALF INTERCEPCIÓN**\n\n"
+        f"Archivo sospechoso detectado en Descargas: `{file_name}`\n"
+        f"Estado: **Guadado en Quarantine**\n\n"
+        f"Que debo hacer?"
     )
     network_utils.retry_request(lambda: bot.send_message(CHAT_ID, text, reply_markup=markup, parse_mode="Markdown"))
 
@@ -113,9 +113,9 @@ def handle_query(call):
     import working_mode_ctrl as wmc
 
     # Separación de la data
-    datos = call.data.split("_")
-    action = datos[0]
-    info = datos[1]
+    data_parts = call.data.split("_")
+    action = data_parts[0]
+    info = data_parts[1]
 
     if action == "work":
         if info == "yes":
@@ -135,9 +135,6 @@ def handle_query(call):
                 bot.edit_message_text(f"☣ `{filename}` Quarantined", CHAT_ID, call.message.message_id)
 
         elif action == "allow":
-            # if os.path.exists(temp_path):
-                # if security.restore_from_quarantine(temp_path, filename):
-                    # bot.edit_message_text(f"`{filename}` Restored", CHAT_ID, call.message.message_id)
             # 1. Recupera los datos del diccionario global
             chat_id = call.message.chat.id
             action_data = pending_actions.get(chat_id)
@@ -163,7 +160,14 @@ def handle_query(call):
             elif action_data["source"] == "CLOUD":
                 # Restaurar desde Drive (necesitas importar cloud_vault)
                 import cloud_vault
-                success = cloud_vault.download_and_decrypt(action_data["file_id"], action_data["original_path"])
+                import index_manager
+
+                file_id = index_manager.get_drive_id(action_data["original_path"])
+                if file_id:
+                    success = cloud_vault.download_and_decrypt(action_data["original_path"], action_data["original_path"])
+                else:
+                    bot.edit_message_text("❌ Error: Drive ID not found in local index.", CHAT_ID, call.message.message_id)
+                    return
 
             # 4. Finalización
             if success:

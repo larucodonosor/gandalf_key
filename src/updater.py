@@ -3,6 +3,9 @@ import subprocess
 import platform
 import requests
 import network_utils
+import logging
+
+logger = logging.getLogger(__name__)
 
 CURRENT_VERSION = "1.0.0"
 
@@ -20,7 +23,7 @@ def download_new_version(url, target_name):
         # Usa retry_request
         return network_utils.retry_request(code_download)
     except Exception as e:
-        print(f"Error crítico en la descarga tras reintentos: {e}")
+        logger.error(f"Error crítico en la descarga tras reintentos: {e}")
         return False
 
 def apply_update():

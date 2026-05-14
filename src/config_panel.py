@@ -4,13 +4,28 @@ from tkinter import ttk
 import keyring
 import webbrowser
 import config_manager
+import logging
+
+logger = logging.getLogger(__name__)
+
+def validate_fields():
+    mandatory_fields = {
+        "API Key de VirusTotal": entry_vt.get(),
+        "Token de Telegram": entry_tel.get(),
+        "Contraseña Maestra": entry_mk.get()
+    }
+    for name, value in mandatory_fields.items():
+        if not value.strip():  # El .strip() evita engaño con espacios en blanco
+            messagebox.showwarning("Campo incompleto", f"El campo '{name}' no puede estar vacío.")
+            return  # Detenemos la ejecución aquí mismo
+
+    if entry_mk.get() != entry_ck.get():
+        messagebox.showerror("Error", "Las contraseñas no coinciden.")
+        return False
+    return True
 
 def save_changes():
-    # Compara la contraseña creada y su confirmación
-    password = entry_mk.get()
-    confirm = entry_ck.get()
-    if password != confirm:
-        messagebox.showerror("Las contraseñas no coinciden")
+    if not validate_fields():
         return
 
     try:
@@ -27,7 +42,7 @@ def save_changes():
                 "retention_days": retention # Guarda el valor
             }
         }
-        config_manager.guardar_config(config)
+        config_manager.keep_config(config)
 
         # Guarda las claves fuera del JSON por seguridad
         keyring.set_password("Gandalf_Guard", "VT_API_KEY", entry_vt.get())
@@ -38,8 +53,15 @@ def save_changes():
 
         messagebox.showinfo("Gandalf", "Configuración actualizada correctamente.")
         root.destroy()
-    except ValueError:
+    except Exception as e:
+        logger.error(f"Error crítico al guardar la configuración: {e}")
         messagebox.showerror("Error", "Error al procesar la configuración.")
+
+def on_closing():
+    if validate_fields():
+        root.destroy()
+    else:
+        messagebox.showwarning("Cierre bloqueado", "Debes configurar correctamente las claves antes de salir.")
 
 # Configura la interfaz
 root = tk.Tk()
@@ -48,7 +70,11 @@ root.title("Configuración de Gandalf")
 root.geometry("430x800")
 
 # Carga la config actual
-current_config = config_manager.cargar_config()["backup"]
+try:
+    current_config = config_manager.load_config()["backup"]
+except Exception:
+    # Fallback si el archivo no existe o está corrupto
+    current_config = {"days": [], "time": "00:00", "retention_days": 30}
 
 # Días
 frame_backup = tk.Frame(root)
@@ -146,7 +172,11 @@ entry_ck.grid(row=12, column=0)
 btn_check = tk.Button(frame_pssw, text='Mostrar 🪄', command=lambda: toggle_visibility(entry_ck, btn_check))
 btn_check.grid(row=12, column=1, pady=5, padx=5)
 
+# Intercepta la X de la ventana
+root.protocol("WM_DELETE_WINDOW", on_closing)
+
 # Botón de guardado
 tk.Button(root, text="Guardar Cambios", command=save_changes).pack(pady=20)
+
 
 root.mainloop()

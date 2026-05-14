@@ -4,52 +4,55 @@ import psutil
 from tkinter import messagebox
 import tkinter as tk
 import pyautogui
+import logging
 
-def asegurar_boveda(rutas):
+logger = logging.getLogger(__name__)
+
+def secure_vault(paths):
     # Revisa las carpetas y protege los archivos .py que no estén en la bóveda.
     os.makedirs(".gandalf_vault", exist_ok=True)
-    for r in rutas:
-        if not os.path.exists(r): continue
-        for f in os.listdir(r):
-            ruta_completa = os.path.join(r, f)
-            if os.path.isfile(ruta_completa) and f.endswith(".py"):
-                ruta_destino = os.path.join(".gandalf_vault", f)
-                if not os.path.exists(ruta_destino):
-                    shutil.copy2(ruta_completa, ruta_destino)
-                    print(f" Copia de seguridad inicial: {f}")
+    for p in paths:
+        if not os.path.exists(p): continue
+        for f in os.listdir(p):
+            full_path = os.path.join(p, f)
+            if os.path.isfile(full_path) and f.endswith(".py"):
+                destiny_path = os.path.join(".gandalf_vault", f)
+                if not os.path.exists(destiny_path):
+                    shutil.copy2(full_path, destiny_path)
+                    logger.info(f" Copia de seguridad inicial: {f}")
 
-def restaurar_archivo(ruta_afectada):
-    ruta_vault = os.path.join(".gandalf_vault", os.path.basename(ruta_afectada))
-    if os.path.exists(ruta_vault):
-        print(f" Iniciando autocuración para: {ruta_afectada}")
-        shutil.copy2(ruta_vault, ruta_afectada)
-        print(f" Archivo restaurado con éxito desde la bóveda.")
+def restore_file(affected_path):
+    vault_path = os.path.join(".gandalf_vault", os.path.basename(affected_path))
+    if os.path.exists(vault_path):
+        logger.info(f" Iniciando autocuración para: {affected_path}")
+        shutil.copy2(vault_path, affected_path)
+        logger.info(f" Archivo restaurado con éxito desde la bóveda.")
         return True
     else:
-        print(f"⚠ No hay copia de seguridad en la bóveda para {ruta_afectada}")
+        logger.warning(f"⚠ No hay copia de seguridad en la bóveda para {affected_path}")
         return False
 # PROTECCIÓN USB
-def obtener_unidades_removibles():
-    unidades = []
-    for particion in psutil.disk_partitions():
+def obtain_removable_units():
+    units = []
+    for partition in psutil.disk_partitions():
         # En Windows, los USB suelen aparecer como 'removable'
-        if 'removable' in particion.opts or 'cdrom' in particion.opts:
-            unidades.append(particion.device)
-    return unidades
+        if 'removable' in partition.opts or 'cdrom' in partition.opts:
+            units.append(partition.device)
+    return units
 
 # AVISOS DEL SISTEMA
-def advertencia_visual(url, nivel= "BLOQUEAR"):
-    # Configuraverify_integrity la interfaz de Tkinter
+def visual_warning(url, severity= "BLOQUEAR"):
+    # Configura verify_integrity la interfaz de Tkinter
     root = tk.Tk()
     root.withdraw()
     root.attributes("-topmost", True) # Esto hace que salga por encima de todo
 
-    if nivel == "BLOQUEAR":
-        titulo_box = "🛡️ BLOQUEO DE SEGURIDAD - GANDALF"
-        mensaje_box = f" Este sitio es PELIGROSO:\n\n{url}\n\n¿Quieres que Gandalf bloquee el acceso y te saque de aquí?"
+    if severity == "BLOQUEAR":
+        box_title = "🛡️ BLOQUEO DE SEGURIDAD - GANDALF"
+        box_message = f" Este sitio es PELIGROSO:\n\n{url}\n\n¿Quieres que Gandalf bloquee el acceso y te saque de aquí?"
         # askyesno: Si dice SI (quiere que le saque), ejecutamos pyautogui
-        sacar_de_aqui = messagebox.askyesno(titulo_box, mensaje_box, master=root)
-        if sacar_de_aqui:
+        get_me_out = messagebox.askyesno(box_title, box_message, master=root)
+        if get_me_out:
             pyautogui.hotkey('alt', 'left')
             root.destroy()
         return False  # No es seguro seguir, la acción de seguridad se activó
@@ -64,5 +67,5 @@ def restore_from_quarantine(temp_path, original_name):
         shutil.move(temp_path, dest)
         return True
     except Exception as e:
-        print(f"Restore error: {e}")
+        logger.error(f"Error al restaurar el archivo: {e}")
         return False
