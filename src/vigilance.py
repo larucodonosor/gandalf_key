@@ -1,15 +1,23 @@
-import requests
-import os
 import base64
 import pygetwindow as gw
+import requests
+import os
 from dotenv import load_dotenv
+import alerts
+import logging
 
+logger = logging.getLogger(__name__)
 
+pending_actions = {}
+
+# Carga el archivo .env
 load_dotenv()
+
 API_KEY = os.getenv("VIRUSTOTAL_API_KEY")
 
-def analizar_url(url):
+def analyze_url(url):
     if not API_KEY:
+        logger.warning("Intento de analizar URL sin API KEY.")
         return "ERROR", "No se encontró la API Key en el archivo .env"
     # VirusTotal necesita la URL en formato base64
     url_id = base64.urlsafe_b64encode(url.encode()).decode().strip("=")
@@ -21,39 +29,41 @@ def analizar_url(url):
     }
 
     try:
-        respuesta = requests.get(endpoint, headers=headers)
+        response = requests.get(endpoint, headers=headers)
 
         # Si la URL es nueva y VT no la tiene, se solicita un escaneo
-        if respuesta.status_code == 404:
+        if response.status_code == 404:
             return "DESCONOCIDO", "URL no analizada previamente. ¡Cuidado!"
 
-        datos = respuesta.json()
-
+        data = response.json()
         # Saca las estadísticas de los 70 antivirus
-        stats = datos['data']['attributes']['last_analysis_stats']
-        maliciosos = stats['malicious']
-        sospechosos = stats['suspicious']
+        stats = data['data']['attributes']['last_analysis_stats']
 
-        if maliciosos > 3:
-            return "BLOQUEAR", f"¡PELIGRO! {maliciosos} motores lo marcan como virus."
-        elif maliciosos > 0 or sospechosos > 0:
-            return "DESCONOCIDO", f"Aviso: {maliciosos + sospechosos} alertas detectadas."
+        malicious = stats['malicious']
+        suspicious = stats['suspicious']
+
+        if malicious > 3:
+            alerts.light_the_beacons(f"URL Maliciosa detectada: {url}", severity="CRITICO")
+            return "BLOQUEAR", f"¡PELIGRO! {malicious} motores lo marcan como virus."
+        elif malicious > 0 or suspicious > 0:
+            return "DESCONOCIDO", f"Aviso: {malicious + suspicious} alertas detectadas."
         else:
             return "SEGURO", "Limpio. 70 antivirus dicen que es seguro."
 
     except Exception as e:
+        logger.error(f"Error en analyze_url: {e}")
         return "ERROR", f"Error de conexión: {str(e)}"
 
 
-def obtener_url_del_navegador():
+def get_brownser_url():
     # Detecta si hay una URL en el título de la ventana activa.
     try:
-        ventana_activa = gw.getActiveWindow()
-        if ventana_activa:
-            titulo = ventana_activa.title
+        active_window = gw.getActiveWindow()
+        if active_window:
+            title = active_window.title
             # Busca patrones típicos de URLs en el título
-            if "http" in titulo.lower() or "www." in titulo.lower():
-                palabras = titulo.split()
+            if "http" in title.lower() or "www." in title.lower():
+                palabras = title.split()
                 for p in palabras:
                     if "http" in p.lower() or "www." in p.lower():
                         return p

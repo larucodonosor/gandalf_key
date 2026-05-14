@@ -4,38 +4,38 @@ import vigilance  # Tu módulo de análisis
 import alerts
 import security
 import firewall_rules
+
 app = Flask(__name__)
 CORS(app)  # Esto permite que Chrome hable con Python
 
 
 @app.route('/analizar', methods=['POST'])
-def analizar():
-    datos = request.json
-    url = datos.get("url")
+def analyze():
+    data = request.json
+    url = data.get("url")
 
     print(f" Recibida URL desde el navegador: {url}")
 
-    # Aquí llamamos a tu lógica de siempre
-    resultado, informe = vigilance.analizar_url(url)
+    result, report = vigilance.analyze_url(url)
 
     # Peligro
-    if resultado == "BLOQUEAR":
+    if result == "BLOQUEAR":
         print(f"🚨 ¡AMENAZA DETECTADA!: {url}")
-        # Aquí dispararíamos el pop-up de security.py
-        alerts.gritar_al_mundo(f"💀 BLOQUEO DESDE EXTENSIÓN: {url}\n{informe}")
-        # Lanzamos el pop-up que ya programaste
-        security.advertencia_visual(url, nivel="BLOQUEAR")
+        # Aquí dispara el pop-up de security.py
+        alerts.light_the_beacons(f"💀 BLOQUEO DESDE EXTENSIÓN: {url}\n{report}")
+        # Lanza el pop-up
+        security.visual_warning(url, severity="BLOQUEAR")
 
     # Alerta
-    elif resultado == "DESCONOCIDO":
-        alerts.gritar_al_mundo(f" SITIO SOSPECHOSO: {url}\n{informe}")
-        if firewall_rules.contexto_navegador():
-            security.advertencia_visual(url, nivel="AVISO")
+    elif result == "DESCONOCIDO":
+        alerts.light_the_beacons(f" SITIO SOSPECHOSO: {url}\n{report}")
+        if firewall_rules.is_browser_in_focus():
+            security.visual_warning(url, severity="AVISO")
 
-        # 3. OK (Para pruebas)
+        # 3. OK
     else:
-        alerts.gritar_al_mundo(f" SITIO SEGURO: {url}")
+        alerts.light_the_beacons(f" SITIO SEGURO: {url}")
 
-    return jsonify({"status": "recibido", "resultado": resultado})
+    return jsonify({"status": "recibido", "resultado": result})
 
 

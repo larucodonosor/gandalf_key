@@ -4,33 +4,33 @@ from dotenv import load_dotenv
 
 load_dotenv()
 MASTER_KEY = os.getenv("MASTER_KEY")
-DB_USB = "conocidos.json"
+DB_USB = "known_devices.json"
 
-def asegurar_archivo_db():
+def ensure_db_file():
     # Crea el archivo si no existe
     if not os.path.exists(DB_USB):
         with open(DB_USB, "w") as f:
             json.dump([], f)
         print(f" Base de datos {DB_USB} creada correctamente.")
 
-def cargar_conocidos():
-    asegurar_archivo_db()
+def load_known_devices():
+    ensure_db_file()
     try:
         with open(DB_USB, "r") as f:
             return json.load(f)
-    except:
+    except (json.JSONDecodeError, IOError):
         return []
 
-def es_usb_autorizado(id_usb):
-    return id_usb in cargar_conocidos()
+def is_usb_authorized(id_usb):
+    return id_usb in load_known_devices()
 
-def autorizar_nuevo_usb(id_usb, clave_introducida):
+def authorize_neww_usb(usb_id, provided_key):
     # Verifica la llave maestra antes de guardar
-    if clave_introducida == MASTER_KEY:
-        conocidos = cargar_conocidos()
-        if id_usb not in conocidos:
-            conocidos.append(id_usb)
+    if provided_key == MASTER_KEY:
+        known_devices = load_known_devices()
+        if usb_id not in known_devices:
+            known_devices.append(usb_id)
             with open(DB_USB, "w") as f:
-                json.dump(conocidos, f, indent=4)
+                json.dump(known_devices, f, indent=4)
         return True, " USB Autorizado con éxito."
     return False, " Clave incorrecta. Acceso denegado."

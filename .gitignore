@@ -12,7 +12,7 @@ quarantine/
 logs/
 
 # Bases de datos de estado (Generadas por el programa)
-estado_base.json
+base_state.json
 conocidos.json
 config_user.json
 

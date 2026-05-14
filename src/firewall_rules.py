@@ -1,13 +1,18 @@
 import pygetwindow as gw
 
-NAVEGADORES = ["chrome", "firefox", "edge", "brave", "opera", "safari"]
+BROWSERS = ["chrome", "firefox", "edge", "brave", "opera", "safari"]
 
-def contexto_navegador():
+def is_browser_in_focus():
     # Verifica si el usuario está en el navegador para activar el procedimiento correspondiente.
-    ventana = gw.getActiveWindow()
+    try:
+        active_window = gw.getActiveWindow()
 
-    if not ventana:
+        if not active_window or active_window.title is None:
+            return False
+
+        window_title = active_window.title.lower()
+        return any(browser in window_title for browser in BROWSERS)
+
+    except Exception as e:
+        print(f"Error detecting active window: {e}")
         return False
-
-    titulo = ventana.title.lower()
-    return any(nav in titulo for nav in NAVEGADORES)

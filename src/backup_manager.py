@@ -1,10 +1,8 @@
 import hashlib
 import json
 import os
-import index_manager
 import cloud_vault
 from datetime import datetime
-
 
 def load_config():
     # Carga el archivo 'treasures.json'.
@@ -17,7 +15,7 @@ def is_treasure_extension(file_path):
     config = load_config()
     # Lista de extensions -> las engloba en una variable
     valid_extensions = [ext for sublist in config["treasure_types"].values() for ext in sublist]
-    return file_path.endswith(tuple(valid_extensions))
+    return file_path.lower().endswith(tuple(valid_extensions))
 
 
 def get_file_hash(file_path):
@@ -45,7 +43,7 @@ def needs_backup(file_path):
             index = json.load(f)
 
         if file_path in index:
-            last_backup_time = datetime.fromisoformat(index[file_path].get("last_updated")).timestamp()
+            last_backup_time = datetime.fromisoformat(index[file_path].get("last_sync")).timestamp()
             # Si el archivo no ha cambiado desde el último backup, no hacemos nada
             if local_mtime <= last_backup_time:
                 return False

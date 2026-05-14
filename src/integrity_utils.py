@@ -13,29 +13,29 @@ def get_file_hash(file_path):
     except Exception:
         return None
 
-def obtener_muestra_adn(ruta):
+def get_dna_sample(file_path):
     try:
-        tamano = os.path.getsize(ruta)
-        if tamano == 0: return "00"
-        L = len(os.path.basename(ruta))
-        posicion = (L**2 + 7) % tamano
-        with open(ruta, "rb") as f:
-            f.seek(posicion)
+        file_size = os.path.getsize(file_path)
+        if file_size == 0: return "00"
+        L = len(os.path.basename(file_path))
+        position = (L**2 + 7) % file_size
+        with open(file_path, "rb") as f:
+            f.seek(position)
             return f.read(1).hex()
-    except:
+    except Exception:
         return "ff"
 
-def validar_adn(ruta):
-    FIRMAS = {b"\x89PNG": ".png", b"\xff\xd8\xff": ".jpg", b"%PDF": ".pdf", b"MZ": ".exe"}
+def validate_dna(file_path):
+    SIGNATURES = {b"\x89PNG": ".png", b"\xff\xd8\xff": ".jpg", b"%PDF": ".pdf", b"MZ": ".exe"}
     try:
-        nombre_archivo = os.path.basename(ruta)
-        ext_declarada = os.path.splitext(nombre_archivo)[1].lower()
-        with open(ruta, "rb") as f:
-            inicio = f.read(4)
-        for firma, ext_real in FIRMAS.items():
-            if inicio.startswith(firma):
-                if ext_declarada != ext_real:
-                    return False, f"¡CAMUFLAJE! ADN de {ext_real} oculto en {ext_declarada}"
+        file_name = os.path.basename(file_path)
+        declared_ext = os.path.splitext(file_name)[1].lower()
+        with open(file_path, "rb") as f:
+            header = f.read(4)
+        for sign, real_ext in SIGNATURES.items():
+            if header.startswith(sign):
+                if declared_ext != real_ext:
+                    return False, f"¡CAMUFLAJE! ADN de {real_ext} oculto en {declared_ext}"
         return True, "ADN correcto"
     except Exception as e:
         return True, f"No se pudo analizar: {e}"
