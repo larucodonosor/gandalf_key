@@ -2,6 +2,7 @@ import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 import requests
 import os
+import time
 from dotenv import load_dotenv
 import security
 import integrity_utils
@@ -103,8 +104,8 @@ def request_work_mode_verification():
     btn_no = InlineKeyboardButton("NO, Block!", callback_data="work_no")
     markup.add(btn_yes, btn_no)
 
-    bot.send_message(CHAT_ID, "WORK MODE REQUESTED!!!\nVerify identity to pause guard:", reply_markup=markup,
-                     parse_mode="Markdown")
+    network_utils.retry_request(lambda: bot.send_message(CHAT_ID, "WORK MODE SOLICITADO!!!\nVerifica tu identidad:", reply_markup=markup,
+                     parse_mode="Markdown"))
 
 # MANEJADOR DE RESPUESTAS (CALLBACKS)
 @bot.callback_query_handler(func=lambda call: True)
@@ -181,6 +182,14 @@ def handle_query(call):
 
 # Función para arrancar el bot en main
 def start_bot_polling():
-    print("Telegram Bot is listening for your commands...")
-    bot.infinity_polling()
+    while True:
+        try:
+            logger.info("Iniciando conexión con el servidor de Telegram...")
+            # infinity_polling intenta reconectar solo, pero para controlar el error total, y que no sature la consola:
+            bot.infinity_polling(timeout=20, long_polling_timeout=20)
+
+        except (requests.exceptions.ConnectionError, Exception) as e:
+            # Captura la caída de red de Telegram
+            logger.warning(f" El bot de Telegram ha perdido la conexión. Reintentando en 30 segundos... Motivo: {e}")
+            time.sleep(45)  # Da un respiro al sistema antes de volver a intentar
 
