@@ -49,7 +49,7 @@ def setup_logger(days_to_keep):
     )
     network_handler.setFormatter(formatter)
     # Filtro: Solo deja pasar si el nombre es exactamente el de red
-    network_handler.addFilter(lambda record: "network_utils" in record.name)
+    network_handler.addFilter(lambda record: "network_utils" in record.name or "telebot" in record.name.lower())
     root_logger.addHandler(network_handler)
 
     logger.info('Sistema de logs iniciado correctamente')

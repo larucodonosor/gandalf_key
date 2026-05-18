@@ -155,6 +155,10 @@ def infinite_surveillance_loop():
 if __name__ == "__main__":
     print(f"🛡️ Gandalf v{updater.CURRENT_VERSION} iniciando guardia...")
 
+    config = logger_manager.load_config()
+    # Supongamos que le pasamos 7 días de retención
+    logger_manager.setup_logger(days_to_keep=7)
+
     # 1. Hilo de telegram (Polling)
     # daemon=True para que se cierre si se cierra el programa principal
     threading.Thread(target=alerts.start_bot_polling, daemon=True).start()
@@ -171,10 +175,6 @@ if __name__ == "__main__":
 
     # 3. Lanza el bucle de vigilancia en su Hilo (Daemon)
     threading.Thread(target=infinite_surveillance_loop, daemon=True).start()
-
-    config = logger_manager.load_config()
-    # Supongamos que le pasamos 7 días de retención
-    logger_manager.setup_logger(days_to_keep=7)
 
     # 4. Inicia la bandeja
     threading.Thread(target=tray_icon.start_tray, daemon=True).start()
