@@ -16,9 +16,11 @@ def toggle_work_mode(button):
     button_reference = button
 
     if not WORK_MODE_ACTIVE:
+        logger.info("Solicitud de activación de Work Mode iniciada.")
         #  Pedir MASTER_KEY
         password = simpledialog.askstring("Security Check", "Enter MASTER_KEY to enable Work Mode:", show='*')
         if password == os.getenv("MASTER_KEY"):
+            logger.info("MASTER_KEY validada localmente. Esperando verificación remota...")
             # El envío se lanza en un hilo aparte para que no bloquee otras funcionalidades
             threading.Thread(target=alerts.request_work_mode_verification, daemon=True).start()
             # El botón a espera
@@ -27,6 +29,7 @@ def toggle_work_mode(button):
             logger.warning("Intento fallido de activación de Work Mode: Contraseña incorrecta.")
             print("Clave incorrecta")
     else:
+        logger.info("Desactivando Work Mode manualmente.")
         update_work_mode_status(False)
         alerts.light_the_beacons("Work Mode Disabled. Guard Active.", severity="INFO")
 
@@ -34,6 +37,7 @@ def update_work_mode_status(status):
     # Esta función se llama desde alerts.py
     global WORK_MODE_ACTIVE
     WORK_MODE_ACTIVE = status
+    logger.info(f"Estado de Work Mode actualizado a: {'ACTIVO' if status else 'INACTIVO'}")
     if button_reference is not None:
         button_reference.after(0, lambda: apply_visual_change(status))
 

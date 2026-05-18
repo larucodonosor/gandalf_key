@@ -25,7 +25,8 @@ os.makedirs(LOG_DIR, exist_ok=True)
 def setup_logger(days_to_keep):
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.INFO)
-
+    if root_logger.hasHandlers():
+        root_logger.handlers.clear()
     # Define el formato
     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
     # when='D': Rota cada día

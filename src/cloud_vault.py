@@ -1,11 +1,16 @@
 import os
 import pickle
+
+from google.auth.exceptions import RefreshError
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 import crypto_utils
 import index_manager
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Alcance: Solo permite que la app gestione archivos creados por ella misma
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
@@ -22,12 +27,32 @@ def get_drive_service():
         with open(token_path, 'rb') as token:
             creds = pickle.load(token)
 
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(cred_path, SCOPES)
-            creds = flow.run_local_server(port=0)
+    try:
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(cred_path, SCOPES)
+                creds = flow.run_local_server(port=0)
+            with open(token_path, 'wb') as token:
+                pickle.dump(creds, token) # Todo ok, guarda el token
+    except RefreshError as e:
+        logger.warning(f"⚠ Token caducado o inválido detectado ({e}). Iniciando borrado automático...")
+
+        # 1. Fuerza la eliminación del archivo pickle caducado
+        if os.path.exists(token_path):
+            try:
+                os.remove(token_path)
+                logger.info("Archivo token.pickle eliminado automáticamente para saneamiento.")
+            except Exception as delete_error:
+                logger.error(f"No se pudo borrar el token: {delete_error}")
+
+        # 2. Reintentamos la autenticación desde cero abriendo el navegador de forma limpia
+        logger.info(" Solicitando nueva autorización al usuario a través del navegador...")
+        flow = InstalledAppFlow.from_client_secrets_file(cred_path, SCOPES)
+        creds = flow.run_local_server(port=0)
+
+        # 3. Guarda el nuevo token válido
         with open(token_path, 'wb') as token:
             pickle.dump(creds, token)
 
