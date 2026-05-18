@@ -12,6 +12,7 @@ import backup_manager
 import backup_scheduler
 import integrity_utils
 import scanner
+import logger_manager
 from server_g_k import app as server_app
 import updater
 import logging
@@ -170,6 +171,10 @@ if __name__ == "__main__":
 
     # 3. Lanza el bucle de vigilancia en su Hilo (Daemon)
     threading.Thread(target=infinite_surveillance_loop, daemon=True).start()
+
+    config = logger_manager.load_config()
+    # Supongamos que le pasamos 7 días de retención
+    logger_manager.setup_logger(days_to_keep=7)
 
     # 4. Inicia la bandeja
     threading.Thread(target=tray_icon.start_tray, daemon=True).start()

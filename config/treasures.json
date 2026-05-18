@@ -1,6 +1,6 @@
 {
   "treasure_types": {
-    "code": [".py", ".js", ".jsx", ".ts", ".tsx", ".html", ".css"],
+    "code": [".py", ".js", ".jsx", ".ts", ".tsx", ".html", ".css", "php"],
     "documents": [".docx", ".doc", ".pdf", ".txt", ".md", ".rtf"],
     "data_config": [".json", ".env", ".yaml", ".ini", ".xml"]
   },

@@ -4,6 +4,7 @@ import psutil
 from tkinter import messagebox
 import tkinter as tk
 import pyautogui
+import time
 import logging
 
 logger = logging.getLogger(__name__)
@@ -53,10 +54,12 @@ def visual_warning(url, severity= "BLOQUEAR"):
         # askyesno: Si dice SI (quiere que le saque), ejecutamos pyautogui
         get_me_out = messagebox.askyesno(box_title, box_message, master=root)
         if get_me_out:
-            pyautogui.hotkey('alt', 'left')
             root.destroy()
-        return False  # No es seguro seguir, la acción de seguridad se activó
-
+            time.sleep(0.2)
+            pyautogui.hotkey('alt', 'left')
+            return False  # No es seguro seguir, la acción de seguridad se activó
+        root.destroy()
+        return False
     root.destroy()
     return True # Es seguro o el usuario asume el riesgo
 
