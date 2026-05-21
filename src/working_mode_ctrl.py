@@ -1,6 +1,7 @@
-import alerts
 import os
+import sys
 import threading
+import keyring
 from tkinter import simpledialog
 import tkinter as tk
 from typing import Optional
@@ -11,6 +12,8 @@ logger = logging.getLogger(__name__)
 WORK_MODE_ACTIVE = False
 button_reference: Optional[tk.Button] = None
 
+import alerts
+
 def toggle_work_mode(button):
     global WORK_MODE_ACTIVE, button_reference
     button_reference = button
@@ -19,15 +22,21 @@ def toggle_work_mode(button):
         logger.info("Solicitud de activación de Work Mode iniciada.")
         #  Pedir MASTER_KEY
         password = simpledialog.askstring("Security Check", "Enter MASTER_KEY to enable Work Mode:", show='*')
-        if password == os.getenv("MASTER_KEY"):
-            logger.info("MASTER_KEY validada localmente. Esperando verificación remota...")
-            # El envío se lanza en un hilo aparte para que no bloquee otras funcionalidades
+        master_key = keyring.get_password('Gandalf_guard', "MASTER_KEY")
+
+        if not master_key:
+            logger.error("Error de interfaz: No se encontró una Master Key registrada en el llavero seguro.")
+            return
+
+        if password == master_key:
+            logger.info("MASTER_KEY validada localmente. Esperando verificación remota de dos factores...")
+            # El envío se lanza en un hilo aparte para que no bloquee la UI de Tkinter
             threading.Thread(target=alerts.request_work_mode_verification, daemon=True).start()
-            # El botón a espera
+            # El botón pasa a estado de espera controlado
             button.config(text="⏳ WAITING TELEGRAM...", bg="orange")
         else:
-            logger.warning("Intento fallido de activación de Work Mode: Contraseña incorrecta.")
-            print("Clave incorrecta")
+            logger.warning("Intento fallido de activación de Work Mode: Contraseña incorrecta introducida.")
+
     else:
         logger.info("Desactivando Work Mode manualmente.")
         update_work_mode_status(False)

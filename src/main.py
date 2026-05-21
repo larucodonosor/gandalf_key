@@ -13,6 +13,7 @@ import backup_scheduler
 import integrity_utils
 import scanner
 import logger_manager
+import config_manager
 from server_g_k import app as server_app
 import updater
 import logging
@@ -20,6 +21,13 @@ import logging
 logger = logging.getLogger(__name__)
 
 WAIT_TIME = 30
+
+if getattr(sys, 'frozen', False):
+    _BASE_DIR = os.path.dirname(sys.executable)
+else:
+    _BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+MEMORY_FILE = os.path.join(_BASE_DIR, "base_memory.json")
 
 def execute_gandalf():
     paths_to_scan = ["./", "./src"]
@@ -66,7 +74,7 @@ def execute_gandalf():
                     os.makedirs('quarantine', exist_ok=True)
                     blocking_destiny = os.path.join("quarantine", f"BLOQUEADO_{os.path.basename(file)}")
                     shutil.move(file, blocking_destiny)  # 'move' lo quita de donde estaba
-                    print(f" Archivo neutralizado y movido a cuarentena.")
+                    logger.warning(f" Archivo neutralizado y movido a cuarentena.")
 
                     continue
 
@@ -136,53 +144,54 @@ def infinite_surveillance_loop():
         execute_gandalf()
 
         current_usbs = security.obtain_removable_units()
-        # ... Lógica de comparación de USBs
+        # Lógica de comparación de USBs
         # ¿Hay alguno más?
         if len(current_usbs) > len(known_usbs):
             nuevos = [u for u in current_usbs if u not in known_usbs]
-            alerts.light_the_beacons(f"⚠️ ¡OJO! Nuevo hardware detectado: {nuevos}")
+            alerts.light_the_beacons(f"⚠ ¡OJO! Nuevo hardware detectado: {nuevos}")
             known_usbs = current_usbs  # Actualiza la memoria
 
         # ¿Falta alguno?
         elif len(current_usbs) < len(known_usbs):
-            alerts.light_the_beacons("ℹ️ Dispositivo extraído.")
+            alerts.light_the_beacons("ℹ Dispositivo extraído.")
             known_usbs = current_usbs
 
-        sys.stdout.write(". ")
-        sys.stdout.flush()
         time.sleep(WAIT_TIME)
 
 if __name__ == "__main__":
     print(f"🛡️ Gandalf v{updater.CURRENT_VERSION} iniciando guardia...")
 
-    config = logger_manager.load_config()
-    # Supongamos que le pasamos 7 días de retención
-    logger_manager.setup_logger(days_to_keep=7)
+    try:
+        user_config = config_manager.load_config()
+        retention_days = user_config.get("backup", {}).get("retention_days", 7)
+    except Exception:
+        retention_days = 7
 
-    # 1. Hilo de telegram (Polling)
-    # daemon=True para que se cierre si se cierra el programa principal
+    logger_manager.setup_logger(days_to_keep=retention_days)
+
+    # 1. Hilo de telegram (Polling) daemon=True para que se cierre si se cierra el programa principal
     threading.Thread(target=alerts.start_bot_polling, daemon=True).start()
-    # logger.info("Servicio de alertas (Telegram) iniciado.")
+
     # 2. Hilo de vigilancia de descargas (Watchdog)
     import downloads_guard
     threading.Thread(target=downloads_guard.start_downloads_guard, daemon=True).start()
-    # logger.info("Guardia de descargas activada.")
+
     # 3. Activa el servidor Flask
     threading.Thread(target=lambda: server_app.run(port=5000, use_reloader=False), daemon=True).start()
-    # logger.info("Servidor API interno escuchando en puerto 5000.")
-    # 2.Inicia variable
+
+    # 4.Inicia variable
     known_usbs = security.obtain_removable_units()
 
-    # 3. Lanza el bucle de vigilancia en su Hilo (Daemon)
+    # 5. Lanza el bucle de vigilancia en su Hilo (Daemon)
     threading.Thread(target=infinite_surveillance_loop, daemon=True).start()
-
-    # 4. Inicia la bandeja
-    threading.Thread(target=tray_icon.start_tray, daemon=True).start()
-
-    # 5. INTERFAZ (HILO PRINCIPAL)
-    # Con ventana.withdraw() en interface.py, no sale la ventana al arrancar.
-    interface.window.mainloop()
 
     # 6. Lanza los backups periodizados
     backup_scheduler.run_in_background()
+
+    # 7. Inicia la bandeja
+    threading.Thread(target=tray_icon.start_tray, daemon=True).start()
+
+    # 8. INTERFAZ (HILO PRINCIPAL) Con ventana.withdraw() en interface.py, no sale la ventana al arrancar.
+    interface.window.mainloop()
+
 

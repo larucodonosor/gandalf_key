@@ -14,5 +14,4 @@ def is_browser_in_focus():
         return any(browser in window_title for browser in BROWSERS)
 
     except Exception as e:
-        print(f"Error detecting active window: {e}")
         return False

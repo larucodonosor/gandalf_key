@@ -3,11 +3,24 @@ from tkinter import messagebox
 from PIL import Image, ImageTk, ImageFilter, ImageDraw
 import random
 import os
+import sys
 import time
+import threading
 import keyring
 from config_controller import ConfigController
 import vigilance
 import working_mode_ctrl
+
+# FUNCIÓN DE MANEJO DE LA RUTA PARA EL EJECUTABLE
+def get_resource_path(relative_path):
+    # Retorna la ruta absoluta para recursos (imágenes, iconos),
+    # soportando tanto el entorno de desarrollo como el ejecutable .exe
+    if getattr(sys, 'frozen', False):
+        # Carpeta temporal donde PyInstaller desempaqueta los assets
+        base_path = sys._MEIPASS
+    else:
+        base_path = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(base_path, relative_path)
 
 # LÓGICA DE OCULTAR/MOSTRAR
 def hide_window():
@@ -19,7 +32,7 @@ def show_window():
     window.attributes("-topmost", True)
 
 
-def abrir_configuracion_modular(seccion_id):
+def open_settings(section_id):
 
     # Pide la contraseña maestra antes de permitir el acceso a cualquier sección del panel de configuración.
 
@@ -34,38 +47,38 @@ def abrir_configuracion_modular(seccion_id):
     prompt.grab_set()  # Bloquea la ventana principal hasta que responda
 
     tk.Label(prompt, text="Introduce la Master Key de Gandalf:", font=("Arial", 10, "bold")).pack(pady=15)
-    entry_verificar = tk.Entry(prompt, show="🫧", width=25)
-    entry_verificar.pack()
+    entry_verify = tk.Entry(prompt, show="🫧", width=25)
+    entry_verify.pack()
 
-    def comprobar_clave():
-        if entry_verificar.get() == master_key_real:
+    def check_key():
+        if entry_verify.get() == master_key_real:
             prompt.destroy()
             # Caso éxito, lanza el controlador pasándole la sección exacta
             # Cierra la app de fondo si hace falta, o lo abre como Toplevel
-            config_app = ConfigController(is_setup_wizard=False, seccion_inicial=seccion_id)
+            config_app = ConfigController(is_setup_wizard=False, initial_section=section_id)
             config_app.mainloop()
         else:
             messagebox.showerror("Acceso Denegado", "Contraseña incorrecta. Intruso detectado.")
             prompt.destroy()
 
-    tk.Button(prompt, text="Verificar 🛡️", command=comprobar_clave).pack(pady=15)
+    tk.Button(prompt, text="Verificar 🛡️", command=check_key).pack(pady=15)
 
 
-def desplegar_menu_config(boton_origen):
+def desploy_settings_menu(origin_btn):
     # Crea y despliega el menú contextual justo debajo del engranaje
-    menu_contextual = tk.Menu(window, tearoff=0)
+    contextual_menu = tk.Menu(window, tearoff=0)
 
-    # Añadimos las opciones mapeadas a los IDs de nuestros archivos modulares
-    menu_contextual.add_command(label="📊 Configurar Backups y Logs", command=lambda: abrir_configuracion_modular(3))
-    menu_contextual.add_command(label="🔑 Claves de APIs y Cloud", command=lambda: abrir_configuracion_modular(2))
-    menu_contextual.add_separator()
-    menu_contextual.add_command(label="🛡️ Cambiar Master Key", command=lambda: abrir_configuracion_modular(1))
+    # Añade las opciones mapeadas a los IDs de los archivos modulares
+    contextual_menu.add_command(label="📊 Configurar Backups y Logs", command=lambda: open_settings(3))
+    contextual_menu.add_command(label="🔑 Claves de APIs y Cloud", command=lambda: open_settings(2))
+    contextual_menu.add_separator()
+    contextual_menu.add_command(label="🛡️ Cambiar Master Key", command=lambda: open_settings(1))
 
-    # Calculamos la posición del botón en la pantalla para que el menú flote justo debajo
-    x = boton_origen.winfo_rootx()
-    y = boton_origen.winfo_rooty() + boton_origen.winfo_height()
+    # Calcula la posición del botón en la pantalla para que el menú flote justo debajo
+    x = origin_btn.winfo_rootx()
+    y = origin_btn.winfo_rooty() + origin_btn.winfo_height()
 
-    menu_contextual.post(x, y)
+    contextual_menu.post(x, y)
 
 # LÓGICA DE DISEÑO
 def gandalf_gradient(width, height):
@@ -154,7 +167,7 @@ window = tk.Tk()
 window.title("Gandalf Security Panel 🛡️")
 window.geometry("650x500")
 # Icono
-icon_path = os.path.join(os.path.dirname(__file__), "img", "gandalf_grey.ico")
+icon_path = get_resource_path(os.path.join("img", "gandalf_grey.ico"))
 try:
     window.iconbitmap(icon_path)
 except:
@@ -162,9 +175,9 @@ except:
 
 canvas = tk.Canvas(window, width=650, height=500, highlightthickness=0)
 canvas.pack(fill="both", expand=True)
-img_fondo_pil = gandalf_gradient(650, 500)
-img_fondo = ImageTk.PhotoImage(img_fondo_pil)
-canvas.create_image(0, 0, anchor="nw", image=img_fondo)
+background_img_pil = gandalf_gradient(650, 500)
+background_img = ImageTk.PhotoImage(background_img_pil)
+canvas.create_image(0, 0, anchor="nw", image=background_img)
 
 canvas.create_text(325, 90, text="CENTINELA GANDALF", font=('Yu Gothic UI', 22, 'bold'), fill="#400835")
 # Entrada de URL
@@ -220,8 +233,10 @@ canvas.create_window(595, 25, window=btn_engranaje)
 
 def Comic_Dropdown_Call(btn):
     # Envoltura rápida para coordinar con la función desplegar_menu_config
-    desplegar_menu_config(btn)
+    desploy_settings_menu(btn)
 
 
 window.protocol("WM_DELETE_WINDOW", hide_window)
 window.withdraw()
+monitor_thread = threading.Thread(target=background_monitor, daemon=True)
+monitor_thread.start()

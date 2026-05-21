@@ -17,7 +17,7 @@ class PanelAPIs(tk.Frame):
             button_widget.config(text='Ocultar 🙈')
 
     def build_ui(self):
-        tk.Label(self, text="🔑 GESTIÓN DE CREDENCIALES Y APIS", font=('Arial', 12, 'bold')).pack(pady=10)
+        tk.Label(self, text="GESTIÓN DE CREDENCIALES Y APIS", font=('Arial', 12, 'bold')).pack(pady=10)
 
         frame_pssw = tk.Frame(self)
         frame_pssw.pack(pady=5)
@@ -77,15 +77,14 @@ class PanelAPIs(tk.Frame):
         link_oauth_id.grid(row=11, column=0)
         link_oauth_id.bind("<Button-1>", lambda e: webbrowser.open_new("https://console.cloud.google.com/apis/credentials"))
 
-        tk.Label(frame_pssw, text='Google OAuth Client Secret:', font=('Arial', 10, 'bold')).grid(row=11, column=0,
-                                                                                                  pady=2)
+        tk.Label(frame_pssw, text='Google OAuth Client Secret:', font=('Arial', 10, 'bold')).grid(row=12, column=0,                                                                                          pady=2)
         self.entry_oauth_secret = tk.Entry(frame_pssw, show='🫧', width=40)
         self.entry_oauth_secret.insert(0, keyring.get_password("Gandalf_Guard", "GOOGLE_CLIENT_SECRET") or "")
-        self.entry_oauth_secret.grid(row=12, column=0)
+        self.entry_oauth_secret.grid(row=13, column=0)
 
         btn_oauth_sec = tk.Button(frame_pssw, text='Mostrar 🪄')
         btn_oauth_sec.config(command=lambda: self.toggle_visibility(self.entry_oauth_secret, btn_oauth_sec))
-        btn_oauth_sec.grid(row=12, column=1, padx=5)
+        btn_oauth_sec.grid(row=13, column=1, padx=5)
 
     def get_data(self):
         return {
