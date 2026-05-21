@@ -1,6 +1,7 @@
 import pystray
 from PIL import Image, ImageDraw
 import os
+import sys
 import ctypes
 
 def set_app_id():
@@ -12,6 +13,14 @@ set_app_id()
 # Referencia para mantener el icono
 icon_instance = None
 
+# Asegura las rutas de los iconos tante en desarrollo como en producción
+def get_resource_path(relative_path):
+    if getattr(sys, 'frozen', False):
+        base_path = sys._MEIPASS
+    else:
+        base_path = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(base_path, relative_path)
+
 def toggle_panel(icon, item):
     import interface
     # state() dice si la ventana está visible, (normal) u oculta (withdrawn)
@@ -20,11 +29,10 @@ def toggle_panel(icon, item):
     else:
         interface.show_window()
 
-
 def start_tray():
     global icon_instance
 
-    icon_path = os.path.join(os.path.dirname(__file__), "img", "gandalf_grey.ico")
+    icon_path = get_resource_path(os.path.join( "img", "gandalf_grey.ico"))
 
     try:
         image = Image.open(icon_path)
@@ -46,5 +54,4 @@ def start_tray():
     )
 
     icon_instance = pystray.Icon("Gandalf", image, "Gandalf Security (Protección Activa)", menu)
-
     icon_instance.run()

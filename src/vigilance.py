@@ -2,7 +2,7 @@ import base64
 import pygetwindow as gw
 import requests
 import os
-from dotenv import load_dotenv
+import keyring
 import alerts
 import logging
 
@@ -10,10 +10,7 @@ logger = logging.getLogger(__name__)
 
 pending_actions = {}
 
-# Carga el archivo .env
-load_dotenv()
-
-API_KEY = os.getenv("VIRUSTOTAL_API_KEY")
+API_KEY = keyring.get_password('Gandalf_Guard', "VIRUSTOTAL_API_KEY")
 
 def analyze_url(url):
     if not API_KEY:
@@ -29,11 +26,15 @@ def analyze_url(url):
     }
 
     try:
-        response = requests.get(endpoint, headers=headers)
+        response = requests.get(endpoint, headers=headers, timeout=10)
 
         # Si la URL es nueva y VT no la tiene, se solicita un escaneo
         if response.status_code == 404:
-            return "DESCONOCIDO", "URL no analizada previamente. ¡Cuidado!"
+            return "DESCONOCIDO", "URL no analizada previamente. ¡Hulle insensato!"
+
+        if response.status_code != 200:
+            logger.warning(f"VirusTotal respondió con un estado inesperado: {response.status_code}")
+            return "ERROR", f"Error de plataforma externa (Código {response.status_code})"
 
         data = response.json()
         # Saca las estadísticas de los 70 antivirus
@@ -67,7 +68,7 @@ def get_brownser_url():
                 for p in palabras:
                     if "http" in p.lower() or "www." in p.lower():
                         return p
-    except:
+    except Exception:
         pass
     return None
 

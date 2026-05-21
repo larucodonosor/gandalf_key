@@ -3,7 +3,7 @@ from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 import requests
 import os
 import time
-from dotenv import load_dotenv
+import keyring
 import security
 import integrity_utils
 import network_utils
@@ -13,20 +13,22 @@ logger = logging.getLogger(__name__)
 
 pending_actions = {}
 
-# Carga el archivo .env
-load_dotenv()
-
 # CONFIGURACIÓN
-TOKEN = os.getenv("TOKEN_TELEGRAM")
-CHAT_ID = os.getenv("CHAT_ID_TELEGRAM")
-VT_API_KEY = os.getenv("VIRUSTOTAL_API_KEY")
+TOKEN = keyring.get_password('Gandalf_Guard',"TOKEN_TELEGRAM")
+CHAT_ID = keyring.get_password('Gandalf_Guard', "CHAT_ID_TELEGRAM")
+VT_API_KEY = keyring.get_password('Gandalf_Guard', "VIRUSTOTAL_API_KEY")
 
-bot = telebot.TeleBot(TOKEN)
+if TOKEN:
+    bot = telebot.TeleBot(TOKEN)
+else:
+    logger.error("No se pudo inicializar el Bot de Telegram: TOKEN no encontrado en Keyring.")
+    bot = None
 
 # CONSULTA A VIRUSTOTAL
 def check_virustotal(file_path):
     # Envía el archivo o su hash a VirusTotal para analizar.
     if not VT_API_KEY:
+        logger.warning("Intento de escaneo abortado: Falta la API Key de VirusTotal en Keyring.")
         return "ERROR", "No API Key configured"
 
     url = "https://www.virustotal.com/api/v3/files"
@@ -79,13 +81,16 @@ def light_the_beacons(message, severity='INFO'):
             logger.critical(f"No se pudo enviar la alerta crítica a Telegram: {e}")
 
 def request_remote_authorization(file_name, temp_path):
+    if not bot:
+        logger.error("Imposible solicitar autorización remota: Bot no inicializado.")
+        return
     # Envía un mensaje con botones interactivos a Telegram.
     # El archivo ya está "inhabilitado" en quarantine por watchdog.
     markup = InlineKeyboardMarkup()
 
     # Crea los botones con 'callback_data' para registrar la selección.
-    btn_quarantine = InlineKeyboardButton("☣️ Quarantine", callback_data=f"quar_{file_name}")
-    btn_allow = InlineKeyboardButton("✅ Allow & Restore", callback_data=f"allow_{file_name}")
+    btn_quarantine = InlineKeyboardButton("☣ Quarantine", callback_data=f"quar_{file_name}")
+    btn_allow = InlineKeyboardButton(" Allow & Restore", callback_data=f"allow_{file_name}")
 
     markup.add(btn_quarantine, btn_allow)
 
@@ -98,6 +103,9 @@ def request_remote_authorization(file_name, temp_path):
     network_utils.retry_request(lambda: bot.send_message(CHAT_ID, text, reply_markup=markup, parse_mode="Markdown"))
 
 def request_work_mode_verification():
+    if not bot:
+        logger.error("Imposible enviar verificación de Work Mode: Bot no inicializado.")
+        return
     # Crea el diálogo  y botones de telegram para aceptar o no la solicitud de Working Mode
     markup = InlineKeyboardMarkup()
     btn_yes = InlineKeyboardButton("YES, it's me", callback_data="work_yes")
@@ -108,75 +116,76 @@ def request_work_mode_verification():
                      parse_mode="Markdown"))
 
 # MANEJADOR DE RESPUESTAS (CALLBACKS)
-@bot.callback_query_handler(func=lambda call: True)
-def handle_query(call):
-    #importación local, solo se activa si se pulsa el boton correspondiente
-    import working_mode_ctrl as wmc
+if bot:
+    @bot.callback_query_handler(func=lambda call: True)
+    def handle_query(call):
+        #importación local, solo se activa si se pulsa el boton correspondiente
+        import working_mode_ctrl as wmc
 
-    # Separación de la data
-    data_parts = call.data.split("_")
-    action = data_parts[0]
-    info = data_parts[1]
+        # Separación de la data
+        data_parts = call.data.split("_")
+        action = data_parts[0]
+        info = data_parts[1]
 
-    if action == "work":
-        if info == "yes":
-            wmc.update_work_mode_status(True)
-            bot.edit_message_text("Work Mode ON", CHAT_ID, call.message.message_id)
-        else:
-            wmc.update_work_mode_status(False)
-            bot.edit_message_text("Work Mode DENIED", CHAT_ID, call.message.message_id)
+        if action == "work":
+            if info == "yes":
+                wmc.update_work_mode_status(True)
+                bot.edit_message_text("Work Mode ON", CHAT_ID, call.message.message_id)
+            else:
+                wmc.update_work_mode_status(False)
+                bot.edit_message_text("Work Mode DENIED", CHAT_ID, call.message.message_id)
 
-    elif action == "quar" or action == "allow":
-        filename = info
-        temp_path = os.path.join("quarantine", f"WAITING_{filename}")
+        elif action == "quar" or action == "allow":
+            filename = info
+            temp_path = os.path.join("quarantine", f"WAITING_{filename}")
 
-        if action == "quar":
-            if os.path.exists(temp_path):
-                os.rename(temp_path, os.path.join("quarantine", filename))
-                bot.edit_message_text(f"☣ `{filename}` Quarantined", CHAT_ID, call.message.message_id)
+            if action == "quar":
+                if os.path.exists(temp_path):
+                    os.rename(temp_path, os.path.join("quarantine", filename))
+                    bot.edit_message_text(f"☣ `{filename}` Quarantined", CHAT_ID, call.message.message_id)
 
-        elif action == "allow":
-            # 1. Recupera los datos del diccionario global
-            chat_id = call.message.chat.id
-            action_data = pending_actions.get(chat_id)
+            elif action == "allow":
+                # 1. Recupera los datos del diccionario global
+                chat_id = call.message.chat.id
+                action_data = pending_actions.get(chat_id)
 
-            if not action_data:
-                bot.edit_message_text("❌ Error: Acción no encontrada.", CHAT_ID, call.message.message_id)
-                return
-
-            # 2. VERIFICACIÓN CRÍTICA DE INTEGRIDAD
-            # Usa el hash que se guardó al detectar el incidente
-            if not integrity_utils.verify_integrity(action_data["temp_path"], action_data["hash"]):
-                light_the_beacons("🚨 ¡INTENTO DE MANIPULACIÓN DETECTADO!", severity="CRITICO")
-                bot.edit_message_text("❌ Error: El archivo ha sido manipulado. Abortando.", CHAT_ID,
-                                      call.message.message_id)
-                return
-
-            # 3. LÓGICA DE RESTAURACIÓN SEGÚN ORIGEN
-            success = False
-            if action_data["source"] == "LOCAL":
-                # Restaurar desde quarantine
-                success = security.restore_from_quarantine(action_data["temp_path"], action_data["filename"])
-
-            elif action_data["source"] == "CLOUD":
-                # Restaurar desde Drive (necesitas importar cloud_vault)
-                import cloud_vault
-                import index_manager
-
-                file_id = index_manager.get_drive_id(action_data["original_path"])
-                if file_id:
-                    success = cloud_vault.download_and_decrypt(action_data["original_path"], action_data["original_path"])
-                else:
-                    bot.edit_message_text("❌ Error: Drive ID not found in local index.", CHAT_ID, call.message.message_id)
+                if not action_data:
+                    bot.edit_message_text("❌ Error: Acción no encontrada.", CHAT_ID, call.message.message_id)
                     return
 
-            # 4. Finalización
-            if success:
-                bot.edit_message_text(f"✅ `{action_data['filename']}` Restaurado con éxito.", CHAT_ID,
+                # 2. VERIFICACIÓN CRÍTICA DE INTEGRIDAD
+                # Usa el hash que se guardó al detectar el incidente
+                if not integrity_utils.verify_integrity(action_data["temp_path"], action_data["hash"]):
+                    light_the_beacons("🚨 ¡INTENTO DE MANIPULACIÓN DETECTADO!", severity="CRITICO")
+                    bot.edit_message_text("❌ Error: El archivo ha sido manipulado. Abortando.", CHAT_ID,
                                       call.message.message_id)
-                pending_actions.pop(chat_id)  # Limpia el registro
-            else:
-                bot.edit_message_text(f"❌ Error al restaurar `{action_data['filename']}`", CHAT_ID,
+                    return
+
+                # 3. LÓGICA DE RESTAURACIÓN SEGÚN ORIGEN
+                success = False
+                if action_data["source"] == "LOCAL":
+                    # Restaurar desde quarantine
+                    success = security.restore_from_quarantine(action_data["temp_path"], action_data["filename"])
+
+                elif action_data["source"] == "CLOUD":
+                    # Restaurar desde Drive (necesitas importar cloud_vault)
+                    import cloud_vault
+                    import index_manager
+
+                    file_id = index_manager.get_drive_id(action_data["original_path"])
+                    if file_id:
+                        success = cloud_vault.download_and_decrypt(action_data["original_path"], action_data["original_path"])
+                    else:
+                        bot.edit_message_text("❌ Error: Drive ID not found in local index.", CHAT_ID, call.message.message_id)
+                        return
+
+            # 4. Finalización
+                if success:
+                    bot.edit_message_text(f"✅ `{action_data['filename']}` Restaurado con éxito.", CHAT_ID,
+                                      call.message.message_id)
+                    pending_actions.pop(chat_id)  # Limpia el registro
+                else:
+                    bot.edit_message_text(f"❌ Error al restaurar `{action_data['filename']}`", CHAT_ID,
                                       call.message.message_id)
 
 

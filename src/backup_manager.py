@@ -1,14 +1,42 @@
 import hashlib
 import json
 import os
+import sys
 import cloud_vault
 from datetime import datetime
+import logging
+
+logger = logging.getLogger(__name__)
+
+# Estandariza las rutas tanto para desarrollo como producción
+def get_secure_config_path(filename):
+    if getattr(sys, 'frozen', False):
+        base_dir = os.path.dirname(sys.executable)
+    else:
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+    config_dir = os.path.join(base_dir, 'config')
+    os.makedirs(config_dir, exist_ok=True)
+    return os.path.join(config_dir, filename)
 
 def load_config():
     # Carga el archivo 'treasures.json'.
-    with open("config/treasures.json", "r") as f:
-        return json.load(f)
+    treasures_path = get_secure_config_path("treasures.json")
 
+    # Si el archivo no existe aún, una plantilla por defecto preventiva
+    if not os.path.exists(treasures_path):
+        default_config = {
+            "treasure_types": {
+                "documentos": [".pdf", ".docx", ".xlsx", ".txt"],
+                "claves": [".key", ".kdbx"]
+            }
+        }
+        with open(treasures_path, "w") as f:
+            json.dump(default_config, f, indent=4)
+        return default_config
+
+    with open(treasures_path, "r") as f:
+        return json.load(f)
 
 def is_treasure_extension(file_path):
     # Comprueba si una extensión se encuentra en la lista.
@@ -16,7 +44,6 @@ def is_treasure_extension(file_path):
     # Lista de extensions -> las engloba en una variable
     valid_extensions = [ext for sublist in config["treasure_types"].values() for ext in sublist]
     return file_path.lower().endswith(tuple(valid_extensions))
-
 
 def get_file_hash(file_path):
     # Calcula el SHA-256 hash para detectar cambios en el contenido.
@@ -27,7 +54,7 @@ def get_file_hash(file_path):
                 hasher.update(chunk)
         return hasher.hexdigest()
     except Exception as e:
-        print(f"Error calculating hash: {e}")
+        logger.error(f"Error calculating hash: {e}")
         return None
 
 def needs_backup(file_path):
@@ -38,23 +65,26 @@ def needs_backup(file_path):
     # Obtiene tiempo local
     local_mtime = os.path.getmtime(file_path)
 
-    if os.path.exists("config/index.json"):
-        with open("config/index.json", 'r') as f:
+    index_path = get_secure_config_path("index.json")
+
+    if os.path.exists(index_path):
+        with open(index_path, 'r') as f:
             index = json.load(f)
 
         if file_path in index:
-            last_backup_time = datetime.fromisoformat(index[file_path].get("last_sync")).timestamp()
-            # Si el archivo no ha cambiado desde el último backup, no hacemos nada
-            if local_mtime <= last_backup_time:
-                return False
+            last_sync_str = index[file_path].get("last_sync")
+            if last_sync_str:
+                last_backup_time = datetime.fromisoformat(last_sync_str).timestamp()
+                # Si el archivo no ha cambiado desde el último backup, nada
+                if local_mtime <= last_backup_time:
+                    return False
 
                 # 2. Validación: ¿Ha cambiado el contenido?
-
     return True
 
 def run_scheduled_backup(file_list):
     # Punto de entrada para el proceso de backup.
-    print(" Iniciando escaneo de cambios...")
+    logger.info(" Iniciando escaneo de cambios...")
 
     for file_path in file_list:
         # Validación de tipo de archivo
@@ -63,13 +93,13 @@ def run_scheduled_backup(file_list):
 
         # Validación de necesidad de backup
         if needs_backup(file_path):
-            print(f" Cambio detectado en {file_path}. Procesando...")
+            logger.info(f" Cambio detectado en {file_path}. Procesando...")
 
             # Genera hash para identificarlo en la nube
             file_hash = get_file_hash(file_path)
 
             # Subida
             file_id = cloud_vault.upload_to_drive(file_path, file_hash)
-            print(f" {file_path} subido con éxito. ID: {file_id}")
+            logger.info(f" {file_path} subido con éxito. ID: {file_id}")
         else:
-            print(f" {file_path} está actualizado.")
+            logger.error(f" {file_path} está actualizado.")

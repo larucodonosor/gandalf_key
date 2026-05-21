@@ -14,27 +14,31 @@ def retry_request(func, *args, **kwargs):
         current_attempt = attempt + 1
         try:
             response = func(*args, **kwargs)
-            # Si es un código 200 (éxito), devuelve la respuesta
             response.raise_for_status()
             return response
-        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout, requests.exceptions.HTTPError) as e:
+            logger.warning(f"Fallo en llamada de red (Intento {current_attempt}/{max_attempts}): {e}")
+
+            # Si ya es el último intento de todos, avisa al sistema
+            if current_attempt == max_attempts:
+                logger.critical("🚨 Se agotaron todos los reintentos de red. Comprueba la conexión.")
+                raise e
+
+            # LOGICA DE ESPERA DINÁMICA CORREGIDA
             if current_attempt == 5:
-                # El 5º falló, el 6º esperará 5 minutos (300 segundos)
-                next_wait = 420
+                # 300 segundos = 5 minutos exactos de tregua
+                next_wait = 300
                 logger.warning(
-                    f" Falla crítica de red (Intento 5). Gandalf entrará en reposo. Próximo intento en 5 min: {e}")
+                    f"⚠ Falla crítica de red (Intento 5). Gandalf entra en reposo. Próximo intento en 5 min.")
             elif current_attempt == 6:
-                # El 6º falló, el 7º esperará otros 5 minutos
-                next_wait = 600
-                logger.warning(f" La red sigue caída (Intento 6). Último intento en otros 5 min: {e}")
+                # Otros 5 minutos antes del último cartucho
+                next_wait = 300
+                logger.warning(f"La red sigue caída (Intento 6). Último intento desesperado en 5 min.")
             else:
-                # Intentos del 1 al 4, aplican la progresión geométrica clásica (5s, 10s, 20s, 40s...)
+                # Progresión geométrica para intentos 1, 2, 3 y 4 (5s, 10s, 20s, 40s...)
                 next_wait = wait_time
-            logger.warning(f"Fallo de conexión (intento {attempt+1}): {e}")
-            if attempt < max_attempts - 1:
-                time.sleep(next_wait)
-            if current_attempt < 5:
-                wait_time *= 2
-            else:
-                logger.critical("Se agotaron los reintentos de red, comprueba la conexión e inténtalo de nuevo más tarde")
-                raise e # Si hay fallo total, avisa al programa
+                wait_time *= 2  # Duplica el multiplicador para el próximo giro
+
+            # El hilo duerme el tiempo exacto calculado
+            time.sleep(next_wait)

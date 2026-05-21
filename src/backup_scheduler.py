@@ -1,5 +1,7 @@
 import json
 import time
+import os
+import sys
 import threading
 import schedule
 import backup_manager
@@ -7,10 +9,19 @@ import logger_manager
 import config_manager
 import logging
 
+from src.backup_manager import get_secure_config_path
+
 logger = logging.getLogger(__name__)
 
-CONFIG_PATH = "config_user.json"
-ESTADO_PATH = "base_state.json"
+# Estandariza las rutas  para que sean accesibles tanto en desarrollo como en producción.
+def get_secure_state_path(filename):
+    if getattr(sys, 'frozen', False):
+        base_dir = os.path.dirname(sys.executable)
+    else:
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base_dir, filename)
+
+ESTADO_PATH = get_secure_config_path("base_state.json")
 
 def job_backup():
     config = config_manager.load_config()["backup"]
@@ -18,21 +29,26 @@ def job_backup():
         return
 
     # Limpieza de logs antiguos ANTES de hacer nada
-    retention_days = config["retention_days", 30] # 30 es valor por defecto
+    retention_days = config.get["retention_days", 30] # 30 es valor por defecto
     logger_manager.setup_logger(retention_days)
 
     # Log de inicio del proceso
     logger.info("Iniciando backup programado...")
 
     try:
-        with open(ESTADO_PATH, "r") as f:
-            estado_actual = json.load(f)
+        if not os.path.exists(ESTADO_PATH):
+            logger.warning(f"No se encontró el archivo de estado {ESTADO_PATH}. Creando uno nuevo vacío.")
+            with open(ESTADO_PATH, "w") as f:
+                json.dump({}, f)
 
-        # Toma la lista de archivos que existen y llama a backup_manager que tiene la lógica de subida
-        archivos = list(estado_actual.keys())
-        backup_manager.run_scheduled_backup(archivos)
+            with open(ESTADO_PATH, "r") as f:
+                estado_actual = json.load(f)
+
+        # Toma la lista de archivos que existen y a backup_manager que tiene la lógica de subida
+        files = list(estado_actual.keys())
+        backup_manager.run_scheduled_backup(files)
         # Log de éxito
-        logger.info(f"Backup finalizado con éxito: {len(archivos)} archivos procesados.")
+        logger.info(f"Backup finalizado con éxito: {len(files)} archivos procesados.")
     except Exception as e:
         # Log de error (si algo falla, queda registrado)
         error_msg = f"Error en el backup programado: {str(e)}"
@@ -54,4 +70,4 @@ def run_in_background():
     # Crea el hilo independiente
     t = threading.Thread(target=start_backup_scheduler, daemon=True)
     t.start()
-    print("🛡️ Backup Scheduler activado en segundo plano.")
+    logger.info("🛡️ Backup Scheduler activado en segundo plano.")

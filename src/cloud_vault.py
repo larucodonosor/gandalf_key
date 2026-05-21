@@ -1,6 +1,7 @@
 import os
 import pickle
-
+import keyring
+import sys
 from google.auth.exceptions import RefreshError
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
@@ -15,13 +16,41 @@ logger = logging.getLogger(__name__)
 # Alcance: Solo permite que la app gestione archivos creados por ella misma
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
 
+def get_secure_token_path():
+     # AJUSTE DE RUTA PARA EL EJECUTABLE (.EXE)
+    if getattr(sys, 'frozen', False):
+        base_dir = os.path.dirname(sys.executable)
+    else:
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+    config_dir = os.path.join(base_dir, 'config')
+    os.makedirs(config_dir, exist_ok=True)
+    return os.path.join(config_dir, 'token.pickle')
+
+def build_credentials_dict():
+    #  Extrae los secretos desde Keyring y monta el diccionario OAuth
+    client_id = keyring.get_password("Gandalf_Guard", "GOOGLE_CLIENT_ID")
+    client_secret = keyring.get_password("Gandalf_Guard", "GOOGLE_CLIENT_SECRET")
+    if not client_id or not client_secret:
+        logger.error("Error: No se encontraron las credenciales de Google OAuth en el Keyring.")
+        return None
+
+    return {
+        "installed": {
+            "client_id": client_id,
+            "project_id": "gandalf-guard",
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+            "token_uri": "https://oauth2.googleapis.com/token",
+            "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+            "client_secret": client_secret,
+            "redirect_uris": ["http://localhost"]
+        }
+    }
+
 def get_drive_service():
     # Autenticación y creación del servicio de Drive.
     creds = None
-    # Rutas relativas para encontrar el JSON desde src/
-    base_dir = os.path.dirname(os.path.dirname(__file__))
-    cred_path = os.path.join(base_dir, 'config', 'credentials.json')
-    token_path = os.path.join(base_dir, 'config', 'token.pickle')
+    token_path = get_secure_token_path()
 
     if os.path.exists(token_path):
         with open(token_path, 'rb') as token:
@@ -32,29 +61,30 @@ def get_drive_service():
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
             else:
-                flow = InstalledAppFlow.from_client_secrets_file(cred_path, SCOPES)
+                config_dict = build_credentials_dict()
+                if not config_dict:
+                    return None
+                flow = InstalledAppFlow.from_client_config(config_dict, SCOPES)
                 creds = flow.run_local_server(port=0)
+
             with open(token_path, 'wb') as token:
-                pickle.dump(creds, token) # Todo ok, guarda el token
+                pickle.dump(creds, token)
+
     except RefreshError as e:
         logger.warning(f"⚠ Token caducado o inválido detectado ({e}). Iniciando borrado automático...")
-
         # 1. Fuerza la eliminación del archivo pickle caducado
         if os.path.exists(token_path):
             try:
                 os.remove(token_path)
-                logger.info("Archivo token.pickle eliminado automáticamente para saneamiento.")
             except Exception as delete_error:
-                logger.error(f"No se pudo borrar el token: {delete_error}")
+                logger.error(f"No se pudo eliminar el archivo token: {delete_error}")
 
-        # 2. Reintentamos la autenticación desde cero abriendo el navegador de forma limpia
-        logger.info(" Solicitando nueva autorización al usuario a través del navegador...")
-        flow = InstalledAppFlow.from_client_secrets_file(cred_path, SCOPES)
-        creds = flow.run_local_server(port=0)
-
-        # 3. Guarda el nuevo token válido
-        with open(token_path, 'wb') as token:
-            pickle.dump(creds, token)
+        config_dict = build_credentials_dict()
+        if config_dict:
+            flow = InstalledAppFlow.from_client_config(config_dict, SCOPES)
+            creds = flow.run_local_server(port=0)
+            with open(token_path, 'wb') as token:
+                pickle.dump(creds, token)
 
     return build('drive', 'v3', credentials=creds)
 
@@ -73,6 +103,9 @@ def upload_to_drive(file_path, file_hash):
     # 3. Sube el archivo cifrado a Google Drive.
     try:
         service = get_drive_service()
+        if not service:
+            logger.error("No se pudo subir a Drive: Servicio no disponible.")
+            return None
         file_metadata = {'name': f"{file_hash}.encrypted"}
         media = MediaFileUpload(temp_filename, mimetype='application/octet-stream')
 
@@ -81,8 +114,12 @@ def upload_to_drive(file_path, file_hash):
 
         # 4. Registro en el índice
         index_manager.update_index(file_path, file_id)
-        print(f" Subida completada. ID: {file_id}")
+        logger.info(f" Subida completada. ID: {file_id}")
         return file_id
+
+    except Exception as e:
+        logger.error(f"Fallo crítico en el proceso de subida a Drive: {e}")
+        return None
 
     finally:
         # 5. Limpieza
@@ -91,12 +128,14 @@ def upload_to_drive(file_path, file_hash):
                 os.remove(temp_filename)
             except PermissionError:
                 pass
-                print(
-                    f"⚠ Nota: No pude borrar el temporal {temp_filename} (bloqueado por el SO), lo borraré en la próxima ejecución.")
+                logger.warning(f"⚠ Nota: No pude borrar el temporal {temp_filename} (bloqueado por el SO), lo borraré en la próxima ejecución.")
 
 def download_and_decrypt(file_id, output_path):
     # Descarga desde Drive, descifra y guarda en local
     service = get_drive_service()
+    if not service:
+        logger.error("No se puede descargar: Servicio Google Drive no inicializado.")
+        return False
     temp_encrypted = "temp_download.encrypted"
 
     try:
@@ -112,6 +151,11 @@ def download_and_decrypt(file_id, output_path):
         # 3. Guardado final
         with open(output_path, 'wb') as f:
             f.write(decrypted_data)
+
+    except Exception as e:
+        logger.error(f"Error al descargar o descifrar el archivo {file_id}: {e}")
+        return False
+
     finally:
         # 4. Limpieza
         if os.path.exists(temp_encrypted):

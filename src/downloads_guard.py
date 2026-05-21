@@ -40,7 +40,7 @@ class DescargaHandler(FileSystemEventHandler):
             return
 
         # 2. Avisa del análisis
-        alerts.log_activity(f"Analizando descarga: {path}")
+        logger.info(f"Analizando descarga: {path}")
 
         # 3. Llama a VirusTotal
         # Si es sospechoso de tener componentes maliciosos
@@ -70,5 +70,5 @@ def start_downloads_guard():
     observer = Observer()
     observer.schedule(event_handler, downloads_path, recursive=False)
     observer.start()
-    print(f"🦅 Vigilante de descargas activado en: {downloads_path}")
+    logger.info(f"🦅 Vigilante de descargas activado en: {downloads_path}")
     return observer

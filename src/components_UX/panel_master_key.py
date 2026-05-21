@@ -23,7 +23,7 @@ class PanelMasterKey(tk.Frame):
 
         tk.Label(frame_pssw, text='Nueva Contraseña Maestra:').grid(row=0, column=0, pady=5)
         self.entry_mk = tk.Entry(frame_pssw, show='🫧', width=30)
-        self.entry_mk.insert(0, keyring.get_password("Gandalf_Guard", "MASTER_KEY") or "")
+        self.entry_mk.insert(0, keyring.get_password("Gandalf_Guard", "MASTER_KEY"))
         self.entry_mk.grid(row=1, column = 0)
 
         btn_eye = tk.Button(frame_pssw, text='Mostrar 🪄')
@@ -32,7 +32,7 @@ class PanelMasterKey(tk.Frame):
 
         tk.Label(frame_pssw, text='Confirmación de Contraseña:').grid(row=2, column=0, pady=5)
         self.entry_ck = tk.Entry(frame_pssw, show='🫧', width=30)
-        self.entry_ck.insert(0, keyring.get_password("Gandalf_Guard", "Confirm_KEY") or "")
+        self.entry_ck.insert(0, keyring.get_password("Gandalf_Guard", "Confirm_KEY"))
         self.entry_ck.grid(row=3, column = 0)
 
         btn_check = tk.Button(frame_pssw, text='Mostrar 🪄')
