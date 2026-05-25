@@ -3,11 +3,12 @@ import os
 import shutil
 import time
 import sys
+import keyring
 import threading
 import tray_icon
 import alerts
 import security
-import interface
+# import interface
 import backup_manager
 import backup_scheduler
 import integrity_utils
@@ -169,29 +170,68 @@ if __name__ == "__main__":
 
     logger_manager.setup_logger(days_to_keep=retention_days)
 
-    # 1. Hilo de telegram (Polling) daemon=True para que se cierre si se cierra el programa principal
-    threading.Thread(target=alerts.start_bot_polling, daemon=True).start()
+    has_key = keyring.get_password("Gandalf_Guard", "MASTER_KEY")
+    if not has_key:
+        logger.info("Primera ejecución detectada. Lanzando Asistente de Configuración Independiente...")
 
-    # 2. Hilo de vigilancia de descargas (Watchdog)
+        # Importa
+        from config_controller import ConfigController
+
+        # Inicializa el asistente en el hilo principal
+        wizard = ConfigController(is_setup_wizard=True)
+
+        # Fuerza a Windows a poner el asistente al frente
+        wizard.deiconify()
+        wizard.lift()
+        wizard.attributes("-topmost", True)
+        wizard.attributes("-topmost", False)
+
+        # El programa se DETIENE aquí hasta que el usuario le dé a "Finalizar Instalación".
+        wizard.mainloop()
+
+        print("✅ Asistente completado con éxito. Inicializando motores principales...")
+
+        # ARRANQUE REAL POST-CONFIGURACIÓN
+
+    # 1. Intenta registrar el ejecutable en el arranque de Windows de forma silenciosa
+    try:
+        if getattr(sys, 'frozen', False):
+            import winreg
+
+            exe_path = os.path.abspath(sys.executable)
+            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Run", 0,
+                                 winreg.KEY_SET_VALUE)
+            winreg.SetValueEx(key, "Gandalf_key", 0, winreg.REG_SZ, f'"{exe_path}"')
+            winreg.CloseKey(key)
+    except Exception:
+        pass
+
+    # 2. Hilo de telegram (Polling) daemon=True para que se cierre si se cierra el programa principal
+    token_telegram = keyring.get_password("Gandalf_Guard", "TELEGRAM_TOKEN")
+    if token_telegram:
+        threading.Thread(target=alerts.start_bot_polling, daemon=True).start()
+
+    # 3. Hilo de vigilancia de descargas (Watchdog)
     import downloads_guard
     threading.Thread(target=downloads_guard.start_downloads_guard, daemon=True).start()
 
-    # 3. Activa el servidor Flask
+    # 4. Activa el servidor Flask
     threading.Thread(target=lambda: server_app.run(port=5000, use_reloader=False), daemon=True).start()
 
-    # 4.Inicia variable
+    # 5.Inicia variable
     known_usbs = security.obtain_removable_units()
 
-    # 5. Lanza el bucle de vigilancia en su Hilo (Daemon)
+    # 6. Lanza el bucle de vigilancia en su Hilo (Daemon)
     threading.Thread(target=infinite_surveillance_loop, daemon=True).start()
 
-    # 6. Lanza los backups periodizados
+    # 7. Lanza los backups periodizados
     backup_scheduler.run_in_background()
 
-    # 7. Inicia la bandeja
+    # 8. Inicia la bandeja
     threading.Thread(target=tray_icon.start_tray, daemon=True).start()
 
-    # 8. INTERFAZ (HILO PRINCIPAL) Con ventana.withdraw() en interface.py, no sale la ventana al arrancar.
+    # 9. INTERFAZ (HILO PRINCIPAL) Con ventana.withdraw() en interface.py, no sale la ventana al arrancar.
+    import interface
     interface.window.mainloop()
 
 

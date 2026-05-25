@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import messagebox
 import keyring
 import config_manager
+import gui_utils
 from components_UX.panel_backups import PanelBackups
 from components_UX.panel_apis import PanelAPIs
 from components_UX.panel_master_key import PanelMasterKey
@@ -18,6 +19,8 @@ class ConfigController(tk.Tk):
         self.container = tk.Frame(self)
         self.container.pack(fill="both", expand=True, padx=20, pady=20)
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
+
+        gui_utils.deploy_context_menu(self)
 
         if self.is_setup_wizard:
             self.show_wizard_step(1)
@@ -37,7 +40,7 @@ class ConfigController(tk.Tk):
         elif step == 2:
             self.current_panel = PanelAPIs(self.container)
             self.current_panel.pack(fill="both", expand=True)
-            tk.Button(self.container, text="Siguiente: Backups ➔", command=lambda: self.show_wizard_step(from_step=2, to_step=3)).pack(
+            tk.Button(self.container, text="Siguiente: Backups ➔", command=lambda: self.validate_and_next(from_step=2, to_step=3)).pack(
                 pady=20)
 
         elif step == 3:
@@ -64,9 +67,11 @@ class ConfigController(tk.Tk):
                 messagebox.showerror("Error", "Las contraseñas no coinciden. Por favor, verifícalas.")
                 return  # Congelar la pantalla aquí
 
-            # Si pasa los dos candados con éxito, guardamos de forma segura en el llavero
+            # Si pasa los dos candados con éxito, guarda de forma segura en el llavero
             keyring.set_password("Gandalf_Guard", "MASTER_KEY", master_key)
             keyring.set_password("Gandalf_Guard", "Confirm_KEY", confirm_key)
+
+            self.show_wizard_step(to_step)
 
         elif from_step == 2:
             # 🚀 Captura los datos del PanelAPIs

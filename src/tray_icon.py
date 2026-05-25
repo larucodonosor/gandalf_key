@@ -32,7 +32,7 @@ def toggle_panel(icon, item):
 def start_tray():
     global icon_instance
 
-    icon_path = get_resource_path(os.path.join( "img", "gandalf_grey.ico"))
+    icon_path = get_resource_path(os.path.join("src", "img", "gandalf_grey.ico"))
 
     try:
         image = Image.open(icon_path)
