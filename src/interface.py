@@ -8,6 +8,7 @@ import time
 import threading
 import keyring
 from config_controller import ConfigController
+import gui_utils
 import vigilance
 import working_mode_ctrl
 
@@ -30,12 +31,11 @@ def show_window():
     # Llama al icono de la bandeja
     window.deiconify()
     window.attributes("-topmost", True)
+    window.attributes("-topmost", False)
 
 
 def open_settings(section_id):
-
     # Pide la contraseña maestra antes de permitir el acceso a cualquier sección del panel de configuración.
-
     # 1. Recupera la contraseña real guardada en el llavero seguro
     master_key_real = keyring.get_password("Gandalf_Guard", "MASTER_KEY")
 
@@ -49,14 +49,19 @@ def open_settings(section_id):
     tk.Label(prompt, text="Introduce la Master Key de Gandalf:", font=("Arial", 10, "bold")).pack(pady=15)
     entry_verify = tk.Entry(prompt, show="🫧", width=25)
     entry_verify.pack()
+    entry_verify.focus_set()
+
+    entry_verify.bind("<Control-v>", lambda e: entry_verify.event_generate("<<Paste>>"))
 
     def check_key():
         if entry_verify.get() == master_key_real:
             prompt.destroy()
+            window.withdraw()
             # Caso éxito, lanza el controlador pasándole la sección exacta
             # Cierra la app de fondo si hace falta, o lo abre como Toplevel
             config_app = ConfigController(is_setup_wizard=False, initial_section=section_id)
-            config_app.mainloop()
+            window.wait_window(config_app)
+            window.deiconify()
         else:
             messagebox.showerror("Acceso Denegado", "Contraseña incorrecta. Intruso detectado.")
             prompt.destroy()
@@ -77,7 +82,6 @@ def desploy_settings_menu(origin_btn):
     # Calcula la posición del botón en la pantalla para que el menú flote justo debajo
     x = origin_btn.winfo_rootx()
     y = origin_btn.winfo_rooty() + origin_btn.winfo_height()
-
     contextual_menu.post(x, y)
 
 # LÓGICA DE DISEÑO
@@ -115,14 +119,6 @@ def on_focusout(event):
         url_entry.insert(0, 'Introduce URL sospechosa...')
         url_entry.config(fg='#95a5a6')
 
-def show_mouse_menu(event):
-    mouse_menu = tk.Menu(window, tearoff=0)
-    mouse_menu.add_command(label="Cortar", command=lambda: window.focus_get().event_generate('<<Cut>>'))
-    mouse_menu.add_command(label="Copiar", command=lambda: window.focus_get().event_generate('<<Copy>>'))
-    mouse_menu.add_command(label="Pegar", command=lambda: window.focus_get().event_generate('<<Paste>>'))
-
-    mouse_menu.tk_popup(event.x_root, event.y_root)
-
 def manual_analysis():
     url = url_entry.get()
     if not url or url == 'Introduce URL sospechosa...':
@@ -149,7 +145,6 @@ def run_analysis(url, modo="Auto"):
     menssage = f"{modo}-Scan: {prefix}\n{report}"
     canvas.itemconfig(result_text_id, text=menssage, fill=color)
 
-
 # VIGILANCIA EN SEGUNDO PLANO
 def background_monitor():
     last_url = ""
@@ -166,6 +161,8 @@ def background_monitor():
 window = tk.Tk()
 window.title("Gandalf Security Panel 🛡️")
 window.geometry("650x500")
+
+gui_utils.deploy_context_menu(window)
 # Icono
 icon_path = get_resource_path(os.path.join("img", "gandalf_grey.ico"))
 try:
@@ -186,7 +183,7 @@ url_entry = tk.Entry(window, width=40, font=('Verdana', 11), borderwidth=0,
 url_entry.insert(0, 'Introduce URL sospechosa...')
 url_entry.bind('<FocusIn>', on_entry_click)
 url_entry.bind('<FocusOut>', on_focusout)
-url_entry.bind('<Button-3>', show_mouse_menu)
+
 canvas.create_window(325, 150, window=url_entry, height=35)
 
 # Botón
