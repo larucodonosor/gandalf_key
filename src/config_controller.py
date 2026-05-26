@@ -69,7 +69,6 @@ class ConfigController(tk.Tk):
 
             # Si pasa los dos candados con éxito, guarda de forma segura en el llavero
             keyring.set_password("Gandalf_Guard", "MASTER_KEY", master_key)
-            keyring.set_password("Gandalf_Guard", "Confirm_KEY", confirm_key)
 
             self.show_wizard_step(to_step)
 

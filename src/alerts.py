@@ -14,9 +14,9 @@ logger = logging.getLogger(__name__)
 pending_actions = {}
 
 # CONFIGURACIÓN
-TOKEN = keyring.get_password('Gandalf_Guard',"TOKEN_TELEGRAM")
-CHAT_ID = keyring.get_password('Gandalf_Guard', "CHAT_ID_TELEGRAM")
-VT_API_KEY = keyring.get_password('Gandalf_Guard', "VIRUSTOTAL_API_KEY")
+TOKEN = keyring.get_password('Gandalf_Guard',"TELEGRAM_TOKEN")
+CHAT_ID = keyring.get_password('Gandalf_Guard', "CHAT_ID")
+VT_API_KEY = keyring.get_password('Gandalf_Guard', "VT_API_KEY")
 
 if TOKEN:
     bot = telebot.TeleBot(TOKEN)
