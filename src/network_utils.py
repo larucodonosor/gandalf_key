@@ -13,19 +13,21 @@ def retry_request(func, *args, **kwargs):
     for attempt in range(max_attempts):
         current_attempt = attempt + 1
         try:
-            response = func(*args, **kwargs)
-            response.raise_for_status()
-            return response
+            result = func(*args, **kwargs)
+
+            if hasattr(result, 'raise_for_status'):
+                result.raise_for_status()
+
+            return result
 
         except (requests.exceptions.ConnectionError, requests.exceptions.Timeout, requests.exceptions.HTTPError) as e:
             logger.warning(f"Fallo en llamada de red (Intento {current_attempt}/{max_attempts}): {e}")
-
             # Si ya es el último intento de todos, avisa al sistema
             if current_attempt == max_attempts:
                 logger.critical("🚨 Se agotaron todos los reintentos de red. Comprueba la conexión.")
                 raise e
 
-            # LOGICA DE ESPERA DINÁMICA CORREGIDA
+            # LOGICA DE ESPERA DINÁMICA
             if current_attempt == 5:
                 # 300 segundos = 5 minutos exactos de tregua
                 next_wait = 300

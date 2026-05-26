@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 pending_actions = {}
 
-API_KEY = keyring.get_password('Gandalf_Guard', "VIRUSTOTAL_API_KEY")
+API_KEY = keyring.get_password('Gandalf_Guard', "VT_API_KEY")
 
 def analyze_url(url):
     if not API_KEY:
