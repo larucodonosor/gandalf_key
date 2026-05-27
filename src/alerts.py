@@ -84,20 +84,32 @@ def request_remote_authorization(file_name, temp_path):
     if not bot:
         logger.error("Imposible solicitar autorización remota: Bot no inicializado.")
         return
+    # Para evitar errores, asegura que el ID del callback no supere 64 caracteres
+    if len(file_name) > 60:
+        name, ext = os.path.splitext(file_name)
+        short_name = f"{name[:55]}{ext}"
+    else:
+        short_name = file_name
+
+    pending_actions[short_name] = {
+        "filename": file_name,  # El nombre real LARGO (para restaurar)
+        "temp_path": temp_path,  # La ruta real en quarantine con el nombre LARGO
+        "source": "LOCAL",
+        "hash": integrity_utils.get_file_hash(temp_path)  # Si usas hash
+    }
     # Envía un mensaje con botones interactivos a Telegram.
     # El archivo ya está "inhabilitado" en quarantine por watchdog.
     markup = InlineKeyboardMarkup()
-
     # Crea los botones con 'callback_data' para registrar la selección.
-    btn_quarantine = InlineKeyboardButton("☣ Quarantine", callback_data=f"quar_{file_name}")
-    btn_allow = InlineKeyboardButton(" Allow & Restore", callback_data=f"allow_{file_name}")
-
+    btn_quarantine = InlineKeyboardButton("☣ Quarantine", callback_data=f"quar_{short_name}")
+    btn_allow = InlineKeyboardButton(" Allow & Restore", callback_data=f"allow_{short_name}")
     markup.add(btn_quarantine, btn_allow)
 
     text = (
         f"🛡️ **GANDALF INTERCEPCIÓN**\n\n"
         f"Archivo sospechoso detectado en Descargas: `{file_name}`\n"
-        f"Estado: **Guadado en Quarantine**\n\n"
+        f"Ubicación segura: `{temp_path}`\n"
+        f"Estado: **Guardado en Quarantine**\n\n"
         f"Que debo hacer?"
     )
     network_utils.retry_request(lambda: bot.send_message(CHAT_ID, text, reply_markup=markup, parse_mode="Markdown"))
@@ -134,34 +146,39 @@ if bot:
             else:
                 wmc.update_work_mode_status(False)
                 bot.edit_message_text("Work Mode DENIED", CHAT_ID, call.message.message_id)
+            return
 
-        elif action == "quar" or action == "allow":
-            filename = info
-            temp_path = os.path.join("quarantine", f"WAITING_{filename}")
+        if action in ["quar", "allow"]:
+            action_data = pending_actions.get(info)
+
+            if not action_data:
+                bot.edit_message_text("❌ Error: Acción o archivo no encontrado en el registro activo.",
+                                      call.message.chat.id, call.message.message_id)
+                return
+            real_filename = action_data["filename"]
+            real_temp_path = action_data["temp_path"]
 
             if action == "quar":
-                if os.path.exists(temp_path):
-                    os.rename(temp_path, os.path.join("quarantine", filename))
-                    bot.edit_message_text(f"☣ `{filename}` Quarantined", CHAT_ID, call.message.message_id)
+                if os.path.exists(real_temp_path):
+                    final_quarantine_path = os.path.join("quarantine", real_filename)
+                    os.rename(real_temp_path, final_quarantine_path)
+                    bot.edit_message_text(f"☣ `{real_filename}` enviado a cuarentena definitiva.",
+                                          call.message.chat.id, call.message.message_id)
+                    pending_actions.pop(info)  # Limpiamos el registro
+                else:
+                    bot.edit_message_text("❌ Error: El archivo temporal ya no existe.",
+                                          call.message.chat.id, call.message.message_id)
 
             elif action == "allow":
-                # 1. Recupera los datos del diccionario global
-                chat_id = call.message.chat.id
-                action_data = pending_actions.get(chat_id)
-
-                if not action_data:
-                    bot.edit_message_text("❌ Error: Acción no encontrada.", CHAT_ID, call.message.message_id)
-                    return
-
-                # 2. VERIFICACIÓN CRÍTICA DE INTEGRIDAD
+                # 1. VERIFICACIÓN CRÍTICA DE INTEGRIDAD
                 # Usa el hash que se guardó al detectar el incidente
-                if not integrity_utils.verify_integrity(action_data["temp_path"], action_data["hash"]):
+                if not integrity_utils.verify_integrity(real_temp_path, action_data["hash"]):
                     light_the_beacons("🚨 ¡INTENTO DE MANIPULACIÓN DETECTADO!", severity="CRITICO")
                     bot.edit_message_text("❌ Error: El archivo ha sido manipulado. Abortando.", CHAT_ID,
                                       call.message.message_id)
                     return
 
-                # 3. LÓGICA DE RESTAURACIÓN SEGÚN ORIGEN
+                # 2. LÓGICA DE RESTAURACIÓN SEGÚN ORIGEN
                 success = False
                 if action_data["source"] == "LOCAL":
                     # Restaurar desde quarantine
@@ -171,7 +188,6 @@ if bot:
                     # Restaurar desde Drive (necesitas importar cloud_vault)
                     import cloud_vault
                     import index_manager
-
                     file_id = index_manager.get_drive_id(action_data["original_path"])
                     if file_id:
                         success = cloud_vault.download_and_decrypt(action_data["original_path"], action_data["original_path"])
@@ -179,13 +195,13 @@ if bot:
                         bot.edit_message_text("❌ Error: Drive ID not found in local index.", CHAT_ID, call.message.message_id)
                         return
 
-            # 4. Finalización
+            # 3. Finalización
                 if success:
-                    bot.edit_message_text(f"✅ `{action_data['filename']}` Restaurado con éxito.", CHAT_ID,
+                    bot.edit_message_text(f"✅ `{real_filename}` Restaurado con éxito.", CHAT_ID,
                                       call.message.message_id)
-                    pending_actions.pop(chat_id)  # Limpia el registro
+                    pending_actions.pop(info)  # Limpia el registro
                 else:
-                    bot.edit_message_text(f"❌ Error al restaurar `{action_data['filename']}`", CHAT_ID,
+                    bot.edit_message_text(f"❌ Error al restaurar `{real_filename}`", CHAT_ID,
                                       call.message.message_id)
 
 

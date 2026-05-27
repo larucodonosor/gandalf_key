@@ -8,7 +8,6 @@ import threading
 import tray_icon
 import alerts
 import security
-# import interface
 import backup_manager
 import backup_scheduler
 import integrity_utils
