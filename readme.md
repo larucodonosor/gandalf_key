@@ -30,6 +30,12 @@ The system balances security depth against system performance using **Calculus-b
 - **Security Intelligence:** VirusTotal API v3.
 - **Libraries:** `hashlib`, `psutil`, `requests`, `tkinter`, `PIL`, `pygetwindow`, `watchdog`, `keyring`, `telebot`.
 
+## 🔍 Security Auditing & Compliance
+Project GANDALF enforces strict static analysis and supply chain verification to guarantee architectural resilience.
+- **Static Application Security Testing (SAST):** Evaluated locally using `bandit` across all $1700+$ lines of code to eliminate high-risk execution wrappers.
+- **Dependency Vulnerability Scanning:** Verified via `safety scan` auditing all $100+$ environment packages against active CVE databases (**Status: 0 Vulnerabilities Reported**).
+- **Continuous Automated Auditing:** Integrated with **GitHub CodeQL** to perform continuous data-flow analysis and cryptographic sanity checks on every remote state mutation.
+
 ## 🚀 Future Roadmap (The Monday Mission)
 1. **Automated Quarantine Retention:** System-wide 30-day cleanup rotation of isolated threats to optimize local storage.
 2. **Advanced Entropy Metrics:** Implementation of mathematical thresholds to evaluate real-time file structural deviation during runtime.
