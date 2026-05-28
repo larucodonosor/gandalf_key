@@ -64,7 +64,7 @@ def apply_update():
             f.write(bat_content)
 
         logger.info("Script puente Windows (update.bat) generado. Ejecutando actualización...")
-        subprocess.Popen([bat_path], shell=True, cwd=_BASE_DIR)
+        subprocess.Popen(["cmd.exe", "/c", bat_path], cwd=_BASE_DIR)
     else:
         # Lógica para Linux/macOS (.sh)
         sh_path = os.path.join(_BASE_DIR, "update.sh")

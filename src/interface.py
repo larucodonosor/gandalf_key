@@ -97,8 +97,8 @@ def gandalf_gradient(width, height):
         layer = Image.new('RGBA', (width, height), (0, 0, 0, 0))
         draw = ImageDraw.Draw(layer)
         for _ in range(9):
-            radio = random.randint(30, 140)
-            x, y = random.randint(0, width), random.randint(0, height)
+            radio = random.randint(30, 140) # nosec
+            x, y = random.randint(0, width), random.randint(0, height) # nosec
             rgb = color[:3]
             alpha_val = color[3] if len(color) > 3 else 30
             draw.ellipse([x - radio, y - radio, x + radio, y + radio], fill=(*rgb, alpha_val))
