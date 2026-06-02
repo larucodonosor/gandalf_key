@@ -42,3 +42,6 @@ archivo_prueba.txt
 archivo_recuperado.txt
 temp_download.encrypted
 *.tmp
+
+# Compilation
+Gandalf_key.spec
