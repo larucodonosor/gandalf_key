@@ -1,7 +1,6 @@
 import base64
 import pygetwindow as gw
 import requests
-import os
 import keyring
 import alerts
 import logging

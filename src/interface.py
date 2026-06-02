@@ -59,7 +59,8 @@ def open_settings(section_id):
             window.withdraw()
             # Caso éxito, lanza el controlador pasándole la sección exacta
             # Cierra la app de fondo si hace falta, o lo abre como Toplevel
-            config_app = ConfigController(is_setup_wizard=False, initial_section=section_id)
+            has_key = keyring.get_password("Gandalf_Guard", "MASTER_KEY")
+            config_app = ConfigController(is_setup_wizard=not has_key, initial_section=section_id)
             window.wait_window(config_app)
             window.deiconify()
         else:
@@ -161,6 +162,13 @@ def background_monitor():
 window = tk.Tk()
 window.title("Gandalf Security Panel 🛡️")
 window.geometry("650x500")
+
+try:
+    import ctypes
+    myappid = 'lara.gandalf.key.1.0'  # ID único para tu app
+    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+except Exception:
+    pass
 
 gui_utils.deploy_context_menu(window)
 # Icono

@@ -32,7 +32,7 @@ def load_known_devices():
         with open(db_path, "r") as f:
             return json.load(f)
     except (json.JSONDecodeError, IOError):
-        logger.error(f"Error al leer el archivo de dispositivos USB: {e}")
+        logger.error(f"Error al leer el archivo de dispositivos USB")
         return []
 
 def is_usb_authorized(id_usb):

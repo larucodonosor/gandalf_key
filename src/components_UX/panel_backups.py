@@ -30,7 +30,7 @@ class PanelBackups(tk.Frame):
         week_days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
 
         for day in week_days:
-            var = tk.IntVar(value=1 if day in self.current_config["days"] else 0)
+            var = tk.IntVar(self, value=1 if day in self.current_config["days"] else 0)
             self.check_vars[day] = var
             tk.Checkbutton(frame_days, text=day.capitalize(), variable=var).pack(anchor="w")
 

@@ -21,7 +21,7 @@ def get_secure_state_path(filename):
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     return os.path.join(base_dir, filename)
 
-ESTADO_PATH = get_secure_config_path("base_state.json")
+ESTADO_PATH = get_secure_config_path("base_memory.json")
 
 def job_backup():
     config = config_manager.load_config()["backup"]
@@ -29,7 +29,7 @@ def job_backup():
         return
 
     # Limpieza de logs antiguos ANTES de hacer nada
-    retention_days = config.get["retention_days", 30] # 30 es valor por defecto
+    retention_days = config.get("retention_days", 30) # 30 es valor por defecto
     logger_manager.setup_logger(retention_days)
 
     # Log de inicio del proceso

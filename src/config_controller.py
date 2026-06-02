@@ -9,11 +9,12 @@ from components_UX.panel_master_key import PanelMasterKey
 
 
 class ConfigController(tk.Tk):
-    def __init__(self, is_setup_wizard=False):
+    def __init__(self, is_setup_wizard=False, initial_section=None):
         super().__init__()
         self.title("Gandalf Control Center")
         self.geometry("500x700")
         self.is_setup_wizard = is_setup_wizard
+        self.initial_section = initial_section
 
         # El contenedor
         self.container = tk.Frame(self)
@@ -25,7 +26,66 @@ class ConfigController(tk.Tk):
         if self.is_setup_wizard:
             self.show_wizard_step(1)
         else:
-            self.show_main_menu()
+            if self.initial_section:
+                self.show_specific_panel(self.initial_section)
+            else:
+                self.show_main_menu()
+
+    def show_specific_panel(self, section_id):
+        # Limpiamos el contenedor
+        for widget in self.container.winfo_children():
+            widget.destroy()
+
+        # Enrutamos según el ID del menú contextual
+        if section_id == 1:
+            tk.Label(self.container, text="🔑 Modificar Master Key", font=("Arial", 12, "bold")).pack(pady=10)
+            self.current_panel = PanelMasterKey(self.container)
+        elif section_id == 2:
+            tk.Label(self.container, text="🌐 Credenciales de APIs y Cloud", font=("Arial", 12, "bold")).pack(pady=10)
+            self.current_panel = PanelAPIs(self.container)
+        elif section_id == 3:
+            tk.Label(self.container, text="📊 Configuración de Backups", font=("Arial", 12, "bold")).pack(pady=10)
+            self.current_panel = PanelBackups(self.container)
+
+        self.current_panel.pack(fill="both", expand=True, pady=10)
+
+        # Botón para guardar y salir o volver al menú global
+        tk.Button(self.container, text="💾 Aplicar y Volver", command=self.save_specific_modification, bg="#231053",
+                  fg="white").pack(pady=15)
+
+    def save_specific_modification(self):
+        data = self.current_panel.get_data()
+
+        # Guardamos en el keyring según el panel que esté activo en este instante
+        if isinstance(self.current_panel, PanelMasterKey):
+            if data.get("master_key") == data.get("confirm_key") and data.get("master_key"):
+                keyring.set_password("Gandalf_Guard", "MASTER_KEY", data["master_key"].strip())
+                messagebox.showinfo("Gandalf", "Master Key actualizada.")
+            else:
+                messagebox.showerror("Error", "Las claves no coinciden.")
+                return
+
+        elif isinstance(self.current_panel, PanelAPIs):
+            keyring.set_password("Gandalf_Guard", "VT_API_KEY", data.get("vt_api_key", "").strip())
+            keyring.set_password("Gandalf_Guard", "TELEGRAM_TOKEN", data.get("telegram_token", "").strip())
+            keyring.set_password("Gandalf_Guard", "CHAT_ID", data.get("chat_id", "").strip())
+            keyring.set_password("Gandalf_Guard", "GOOGLE_CLIENT_ID", data.get("google_client_id", "").strip())
+            keyring.set_password("Gandalf_Guard", "GOOGLE_CLIENT_SECRET", data.get("google_client_secret", "").strip())
+            messagebox.showinfo("Gandalf", "APIs sincronizadas en el llavero.")
+
+        elif isinstance(self.current_panel, PanelBackups):
+            config = {
+                "backup": {
+                    "enabled": True,
+                    "days": data.get("days", []),
+                    "time": data.get("time", "03:00"),
+                    "retention_days": data.get("retention_days", 30)
+                }
+            }
+            config_manager.keep_config(config)
+            messagebox.showinfo("Gandalf", "Configuración de Backups actualizada en disco.", parent=self)
+        # Devuelve el control a la interfaz principal
+        self.destroy()
 
     def show_wizard_step(self, step):
         # Limpia el frame actual
