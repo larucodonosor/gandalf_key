@@ -15,6 +15,9 @@ def get_secure_config_path(filename):
     else:
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+    if filename == "base_memory.json":
+        return os.path.abspath(os.path.join(base_dir, "base_memory.json"))
+
     config_dir = os.path.join(base_dir, 'config')
     os.makedirs(config_dir, exist_ok=True)
     return os.path.join(config_dir, filename)
@@ -23,7 +26,7 @@ def load_config():
     # Carga el archivo 'treasures.json'.
     treasures_path = get_secure_config_path("treasures.json")
 
-    # Si el archivo no existe aún, una plantilla por defecto preventiva
+    # Si el archivo no existe aún, crea una plantilla preventiva
     if not os.path.exists(treasures_path):
         default_config = {
             "treasure_types": {
@@ -68,7 +71,7 @@ def needs_backup(file_path):
     index_path = get_secure_config_path("index.json")
 
     if os.path.exists(index_path):
-        with open(index_path, 'r') as f:
+        with open(index_path, 'r', encoding="utf-8", errors="replace") as f:
             index = json.load(f)
 
         if file_path in index:

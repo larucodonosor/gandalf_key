@@ -20,7 +20,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-WAIT_TIME = 30
+WAIT_TIME = 60
 
 if getattr(sys, 'frozen', False):
     _BASE_DIR = os.path.dirname(sys.executable)
@@ -30,35 +30,64 @@ else:
 MEMORY_FILE = os.path.join(_BASE_DIR, "base_memory.json")
 
 def execute_gandalf():
-    paths_to_scan = ["./", "./src"]
-    memory_file = "base_memory.json"
+    try:
+        config_treasures = backup_manager.load_config()
+        folders_to_protect = config_treasures.get("protected_folders", ["Documents", "Desktop"])
+    except Exception as e:
+        logger.error(f"No se pudo cargar la configuración de carpetas protegidas: {e}")
+        folders_to_protect = ["Documents", "Desktop"]
+
+        # 2. TRADUCTOR DE RUTAS REALES DE WINDOWS
+        # os.path.expanduser("~") calcula automáticamente el "C:\Users\tu_usuario" en cualquier PC
+    user_home = os.path.expanduser("~")
+    paths_to_scan = []
+
+    for folder in folders_to_protect:
+        real_path = os.path.join(user_home, folder)
+        if os.path.exists(real_path):
+            paths_to_scan.append(real_path)
+        else:
+            # Por si existen carpetas de desarrollo directas en la raíz del proyecto
+            if os.path.exists(folder):
+                paths_to_scan.append(os.path.abspath(folder))
     # 1. Escaneo actual
     current_state = {}
+
+    # Determina las rutas absolutas de sus propios archivos de monitorización
+    my_memory_path = os.path.abspath(MEMORY_FILE)
+    my_config_path = os.path.abspath(config_manager.get_secure_config_path())
+    my_logs_dir = os.path.abspath("logs")
 
     # 2. Recorre cada ruta de la lista
     for path in paths_to_scan:
         # Escanea UNA carpeta y guarda el resultado temporalmente
         scan_result = scanner.map_folder(path)
         if scan_result is not None:
-            for file, data in scan_result.items():
+            for file_path, data in scan_result.items():
+                # Continua si el archivo es propio del sistema
+                abs_file_path = os.path.abspath(file_path)
+                if "node_modules" in abs_file_path or ".git" in abs_file_path or "venv" in abs_file_path:
+                    continue
+                if abs_file_path == my_memory_path or abs_file_path == my_config_path or abs_file_path.startswith(
+                        my_logs_dir):
+                    continue
+                if os.path.basename(file_path).startswith("~$"):
+                    continue
                 # Add to state if it's a "treasure" or general file
-                if backup_manager.is_treasure_extension(file):
-                    current_state[file] = data
-
-            # Mezcla lo que acaba de encontrar con el diccionario general
-            current_state.update(scan_result)
+                if backup_manager.is_treasure_extension(file_path):
+                    current_state[file_path] = data
 
     # 3. Intenta cargar la memoria del pasado
-    if not os.path.exists(memory_file):
+    if not os.path.exists(MEMORY_FILE):
         # Si NO existe, guarda la primera copia y sale
-        with open(memory_file, "w") as f:
-            json.dump(current_state, f)
+        with open(MEMORY_FILE, "w", encoding="utf-8") as f:
+            json.dump(current_state, f, indent=4, ensure_ascii=False)
         return
 
     # 5. El Gran Comparador (La lógica de seguridad)
     try:
     # 5.1. Si existe, lee y compara
-        with open(memory_file, "r") as f:
+        with open(MEMORY_FILE, "r", encoding="utf-8", errors="replace") as f:
             past_memory = json.load(f)
         for file, current_data in current_state.items():
             if file not in past_memory:
@@ -75,7 +104,6 @@ def execute_gandalf():
                     blocking_destiny = os.path.join("quarantine", f"BLOQUEADO_{os.path.basename(file)}")
                     shutil.move(file, blocking_destiny)  # 'move' lo quita de donde estaba
                     logger.warning(f" Archivo neutralizado y movido a cuarentena.")
-
                     continue
 
             # Mira el HASH
@@ -83,30 +111,43 @@ def execute_gandalf():
                 base_name = os.path.basename(file)
 
                 # 1. Registro y grito (llama a alerts.py)
-
                 logger.warning(f'Modificación detectada en: {file}')
                 alerts.light_the_beacons(f"¡INTRUSO! El archivo {base_name} ha sido modificado.", severity='CRITICO')
 
-                # 2. Protocolo de Decisión (Aquí está la clave)
-                if os.path.isfile("DESARROLLO.txt"):
-                    # Si es desarrollo, actualiza la bóveda
+                # 2. Protocolo de Decisión
+                try:
+                    user_config = config_manager.load_config()
+                    # Buscamos si está activo. Si no encuentra la clave, por defecto asumimos False (Modo Seguro activo)
+                    work_mode_active = user_config.get("security", {}).get("work_mode", False)
+                except Exception:
+                    work_mode_active = False
+
+                if work_mode_active:
+                    # 🛠️ MODO TRABAJO ON: No molestamos al usuario.
+                    # Copiamos el cambio directamente a la bóveda local o actualizamos la copia
                     vault_path = os.path.join(".gandalf_vault", base_name)
                     shutil.copy2(file, vault_path)
+                    logger.info(f"💾 Work Mode Activo: {base_name} actualizado en la bóveda local automáticamente.")
                 else:
                     # 1. Mueve a cuarentena preventiva
                     os.makedirs('quarantine', exist_ok=True)
                     temp_path = os.path.join("quarantine", f"WAITING_{base_name}")
                     shutil.copy2(file, temp_path)  # Copia para analizar
 
+                    if len(base_name) > 60:
+                        name, ext = os.path.splitext(base_name)
+                        short_name = f"{name[:55]}{ext}"
+                    else:
+                        short_name = base_name
+
                     # 2. Registra en la memoria de alertas (PENDING ACTIONS)
-                    alerts.pending_actions[alerts.CHAT_ID] = {
+                    alerts.pending_actions[short_name] = {
                         "source": "LOCAL",
                         "filename": base_name,
                         "hash": current_data["hash"],  # Guarda la huella original
                         "temp_path": temp_path,
                         "original_path": file
                     }
-
                     # 3. Lanza la petición al usuario
                     alerts.request_remote_authorization(base_name, temp_path)
 
@@ -114,7 +155,6 @@ def execute_gandalf():
              (current_data["modified_at"] == past_memory[file]["modified_at"]):
 
                 # CHEQUEO DE ADN SECRETO
-
                 if current_data.get("dna_sample") != past_memory[file].get("dna_sample"):
                     alerts.light_the_beacons(f"🚨 ¡ALERTA DE SUPLANTACIÓN! El ADN en la posición secreta ha cambiado en {file}", severity='CRITICO')
                   # Aquí dispara la cuarentena
@@ -126,16 +166,14 @@ def execute_gandalf():
             if old_file not in current_state:
                 alerts.light_the_beacons(f"💀 ¡ALERTA! Archivo ELIMINADO: {old_file}", severity='ALERTA')
                 logger.critical(f"Archivo desaparecido: {old_file}")
-
                 security.restore_file(old_file)
 
     except Exception as e:
         logger.error(f"🕵️‍♂️ Gandalf ha detectado una perturbación en la Fuerza: {e}")
-        logger.error(f"Error en el escaneo: {e}")
 
     # 6. Actualiza la memoria
-    with open(memory_file, "w") as f:
-        json.dump(current_state, f, indent=4)  # El indent=4 lo hace legible
+    with open(MEMORY_FILE, "w", encoding="utf-8") as f:
+        json.dump(current_state, f, indent=4, ensure_ascii=False)  # El indent=4 lo hace legible
 
 # Vigila los dispositivos del sistema
 def infinite_surveillance_loop():
