@@ -1,10 +1,9 @@
-import os
-import sys
 import threading
 import keyring
 from tkinter import simpledialog
 import tkinter as tk
 from typing import Optional
+import config_manager
 import logging
 
 logger = logging.getLogger(__name__)
@@ -22,7 +21,7 @@ def toggle_work_mode(button):
         logger.info("Solicitud de activación de Work Mode iniciada.")
         #  Pedir MASTER_KEY
         password = simpledialog.askstring("Security Check", "Enter MASTER_KEY to enable Work Mode:", show='*')
-        master_key = keyring.get_password('Gandalf_guard', "MASTER_KEY")
+        master_key = keyring.get_password('Gandalf_Guard', "MASTER_KEY")
 
         if not master_key:
             logger.error("Error de interfaz: No se encontró una Master Key registrada en el llavero seguro.")
@@ -47,6 +46,25 @@ def update_work_mode_status(status):
     global WORK_MODE_ACTIVE
     WORK_MODE_ACTIVE = status
     logger.info(f"Estado de Work Mode actualizado a: {'ACTIVO' if status else 'INACTIVO'}")
+
+    try:
+        # 1. Carga la configuración actual del usuario
+        current_config = config_manager.load_config()
+
+        # 2. Si no existe la sección "security", la crea
+        if "security" not in current_config:
+            current_config["security"] = {}
+
+        # 3. Inyecta el nuevo estado del interruptor
+        current_config["security"]["work_mode"] = status
+
+        # 4. Fuerza al config_manager a sobreescribir el config_user.json
+        config_manager.keep_config(current_config)
+        logger.info("El estado de 'work_mode' se ha guardado con éxito en config_user.json.")
+
+    except Exception as e:
+        logger.error(f"Error crítico al guardar el estado: {e}")
+
     if button_reference is not None:
         button_reference.after(0, lambda: apply_visual_change(status))
 

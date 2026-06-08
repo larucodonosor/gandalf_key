@@ -1,52 +1,40 @@
 from cryptography.fernet import Fernet
 import os
 import sys
+import base64
+import hashlib
+import keyring
 import logging
 
 logger=logging.getLogger(__name__)
 
 # Estandariza las rutas tanto para desarrollo como producción
-def get_secure_key_path():
-    if getattr(sys, 'frozen', False):
-        base_dir = os.path.dirname(sys.executable)
-    else:
-        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+def get_derived_key():
+    raw_key = keyring.get_password("Gandalf_Guard", "MASTER_KEY")
+    if not raw_key:
+        raise ValueError("No se encontró la MASTER_KEY en el llavero seguro.")
 
-    config_dir = os.path.join(base_dir, 'config')
-    os.makedirs(config_dir, exist_ok=True)
-    return os.path.join(config_dir, "sys_cache.bin")
-
-# Carga la clave maestra o la genera si no existe
-def load_or_create_key():
-    key_path = get_secure_key_path()
-
-    if os.path.exists(key_path):
-        with open(key_path, 'rb') as key_file:
-            return key_file.read()
-    else:
-        key = Fernet.generate_key()
-        with open(key_path, 'wb') as key_file:
-            key_file.write(key)
-        return key
+    # Ajusta la MASTER_KEY para FERNET: 32 bytes codificados en Base64
+    hashed_key = hashlib.sha256(raw_key.encode('utf-8')).digest()
+    return base64.urlsafe_b64encode(hashed_key)
 
 def encrypt_file(file_path):
     # Cifra un archivo y devuelve los datos cifrados.
-    key = load_or_create_key()
-    fernet = Fernet(key)
-
     try:
+        key = get_derived_key()
+        fernet = Fernet(key)
         with open(file_path, 'rb') as file:
             file_data = file.read()
         return fernet.encrypt(file_data)
     except Exception as e:
-        logger.error(f'Error de ecriptado en el archivo {file_path}: {e}')
+        logger.error(f'Error de encriptado en el archivo {file_path}: {e}')
         return None
 
 def decrypt_file(file_path):
     # Descifra datos usando la clave maestra.
-    key = load_or_create_key()
-    fernet = Fernet(key)
     try:
+        key = get_derived_key()
+        fernet = Fernet(key)
         with open(file_path, 'rb') as f:
             encrypted_data = f.read()
         return fernet.decrypt(encrypted_data)

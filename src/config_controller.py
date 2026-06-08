@@ -32,11 +32,11 @@ class ConfigController(tk.Tk):
                 self.show_main_menu()
 
     def show_specific_panel(self, section_id):
-        # Limpiamos el contenedor
+        # Limpia el contenedor
         for widget in self.container.winfo_children():
             widget.destroy()
 
-        # Enrutamos según el ID del menú contextual
+        # Enruta según el ID del menú contextual
         if section_id == 1:
             tk.Label(self.container, text="🔑 Modificar Master Key", font=("Arial", 12, "bold")).pack(pady=10)
             self.current_panel = PanelMasterKey(self.container)
@@ -56,7 +56,7 @@ class ConfigController(tk.Tk):
     def save_specific_modification(self):
         data = self.current_panel.get_data()
 
-        # Guardamos en el keyring según el panel que esté activo en este instante
+        # Guarda en el keyring según el panel que esté activo en este instante
         if isinstance(self.current_panel, PanelMasterKey):
             if data.get("master_key") == data.get("confirm_key") and data.get("master_key"):
                 keyring.set_password("Gandalf_Guard", "MASTER_KEY", data["master_key"].strip())

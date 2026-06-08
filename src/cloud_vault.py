@@ -14,7 +14,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 # Alcance: Solo permite que la app gestione archivos creados por ella misma
-SCOPES = ['https://www.googleapis.com/auth/drive.file']
+SCOPES = ['https://www.googleapis.com/auth/drive']
 
 def get_secure_token_path():
      # AJUSTE DE RUTA PARA EL EJECUTABLE (.EXE)

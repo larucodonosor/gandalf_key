@@ -135,9 +135,9 @@ if bot:
         import working_mode_ctrl as wmc
 
         # Separación de la data
-        data_parts = call.data.split("_")
+        data_parts = call.data.split("_", 1)
         action = data_parts[0]
-        info = data_parts[1]
+        info = data_parts[1] if len(data_parts) > 1 else ""
 
         if action == "work":
             if info == "yes":
@@ -164,7 +164,7 @@ if bot:
                     os.rename(real_temp_path, final_quarantine_path)
                     bot.edit_message_text(f"☣ `{real_filename}` enviado a cuarentena definitiva.",
                                           call.message.chat.id, call.message.message_id)
-                    pending_actions.pop(info)  # Limpiamos el registro
+                    pending_actions.pop(info, None)  # Limpiamos el registro
                 else:
                     bot.edit_message_text("❌ Error: El archivo temporal ya no existe.",
                                           call.message.chat.id, call.message.message_id)
@@ -174,7 +174,7 @@ if bot:
                 # Usa el hash que se guardó al detectar el incidente
                 if not integrity_utils.verify_integrity(real_temp_path, action_data["hash"]):
                     light_the_beacons("🚨 ¡INTENTO DE MANIPULACIÓN DETECTADO!", severity="CRITICO")
-                    bot.edit_message_text("❌ Error: El archivo ha sido manipulado. Abortando.", CHAT_ID,
+                    bot.edit_message_text("❌ Error: El archivo ha sido manipulado. Abortando.", call.message.chat.id,
                                       call.message.message_id)
                     return
 
@@ -192,16 +192,16 @@ if bot:
                     if file_id:
                         success = cloud_vault.download_and_decrypt(action_data["original_path"], action_data["original_path"])
                     else:
-                        bot.edit_message_text("❌ Error: Drive ID not found in local index.", CHAT_ID, call.message.message_id)
+                        bot.edit_message_text("❌ Error: Drive ID not found in local index.", call.message.chat.id, call.message.message_id)
                         return
 
             # 3. Finalización
                 if success:
-                    bot.edit_message_text(f"✅ `{real_filename}` Restaurado con éxito.", CHAT_ID,
+                    bot.edit_message_text(f"✅ `{real_filename}` Restaurado con éxito.", call.message.chat.id,
                                       call.message.message_id)
                     pending_actions.pop(info)  # Limpia el registro
                 else:
-                    bot.edit_message_text(f"❌ Error al restaurar `{real_filename}`", CHAT_ID,
+                    bot.edit_message_text(f"❌ Error al restaurar `{real_filename}`", call.message.chat.id,
                                       call.message.message_id)
 
 

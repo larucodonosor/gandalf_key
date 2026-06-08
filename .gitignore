@@ -12,12 +12,8 @@ quarantine/
 logs/
 
 # Bases de datos de estado (Generadas por el programa)
-base_state.json
 conocidos.json
 config_user.json
-
-# Nuestra llave de desarrollo (es personal)
-DESARROLLO.txt
 
 # Información sensible
 .env
@@ -28,7 +24,6 @@ DESARROLLO.txt
 # Secretos
 config/credentials.json
 config/token.pickle
-config/sys_cache.bin
 config/index.json
 
 
@@ -43,5 +38,5 @@ archivo_recuperado.txt
 temp_download.encrypted
 *.tmp
 
-# Compilation
+# Compilación
 Gandalf_key.spec
