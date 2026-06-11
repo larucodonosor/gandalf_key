@@ -105,4 +105,4 @@ def run_scheduled_backup(file_list):
             file_id = cloud_vault.upload_to_drive(file_path, file_hash)
             logger.info(f" {file_path} subido con éxito. ID: {file_id}")
         else:
-            logger.error(f" {file_path} está actualizado.")
+            logger.info(f" {file_path} está actualizado.")
