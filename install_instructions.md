@@ -67,3 +67,28 @@ python src/main.py
 Once the UI initializes, the application will detect that the environment lacks credentials and will prompt the setup configuration panels. 
 Fill in your credentials inside the fields. 
 The backend script will link with keyring and store your parameters natively without exposing raw files.
+
+## Critical Post-Deployment Configurations
+### 1. How to Bypass Windows Defender (False Positives)
+Because Gandalf interacts with your storage, encrypts files, and runs background monitoring tasks, Windows Defender might flag the standalone .exe as an unrecognized program.
+- **To bypass this protection:**
+- When running Gandalf_key.exe for the first time, click on the "More info" (Más información) link inside the Windows SmartScreen blue pop-up.
+- Click the "Run anyway" (Ejecutar de todas formas) button that appears at the bottom.
+- Pro-Tip (Avoid continuous scanning): To prevent Windows Defender from continuously checking Gandalf's working directories, open Windows Security -> Virus & threat protection -> Manage settings -> Exclusions (Exclusiones). Add the extracted Gandalf_key folder there to whitelist the wizard.
+
+### 2. Setting Up Automatic Boot (Persistence)
+If you completely shut down your computer, you can anchor Gandalf to the Windows boot sequence so he starts his watch automatically.
+- **Option A:** The Startup Folder (Easiest)
+- Press Win + R on your keyboard to open the Run dialog.
+- Type shell:startup and hit Enter to open your Windows Startup folder.
+- Right-click your Gandalf_key.exe file and select Create shortcut (Crear acceso directo).
+- Cut and paste that new shortcut directly into the Startup folder.
+- **Option B:** Windows Task Scheduler (Stealth & Silent Boot)
+To make Gandalf launch silently without flashing any temporary console windows:
+- Open the Windows Start Menu, search for Task Scheduler (Programador de Tareas) and open it.
+- Click Create Basic Task... (Crear Tarea Básica) on the right panel. Name it Gandalf Guard.
+- Set the Trigger to When I log on (Al iniciar sesión).
+- Set the Action to Start a program and browse to select your Gandalf_key.exe.
+- Finish the wizard, open the task properties, and ensure it runs with highest privileges.
+
+“Keep it secret. Keep it safe.” 🗝️🔒
