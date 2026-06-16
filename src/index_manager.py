@@ -46,6 +46,10 @@ def update_index(local_path, drive_id):
     except Exception as e:
         logger.error(f" Error guardando index: {e}")
 
+def get_index_file_path():
+    # Devuelve la ruta absoluta del archivo index.json.
+    return _INDEX_PATH
+
 def get_drive_id(local_path):
     # Recupera el ID para una ruta de archivo local determinada.
     if not os.path.exists(_INDEX_PATH):

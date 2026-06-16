@@ -32,7 +32,13 @@ def load_config():
             "treasure_types": {
                 "documentos": [".pdf", ".docx", ".xlsx", ".txt"],
                 "claves": [".key", ".kdbx"]
-            }
+            },
+            "protected_folders": [
+                "USER_PROFILE"
+            ],
+            "folders_to_ignore": [
+                "node_modules", ".git", "dist", "build", "venv", ".idea", "__pycache__", "AppData"
+            ]
         }
         with open(treasures_path, "w") as f:
             json.dump(default_config, f, indent=4)
@@ -85,9 +91,42 @@ def needs_backup(file_path):
                 # 2. Validación: ¿Ha cambiado el contenido?
     return True
 
-def run_scheduled_backup(file_list):
+def gather_all_treasures_from_config():
+    # Mapea dinámicamente el perfil del usuario omitiendo carpetas pesadas.
+    config = load_config()
+    folders_config = config.get("protected_folders", [])
+    excluded_folders = set(config.get("folders_to_ignore", []))
+    file_list = []
+
+    for folder in folders_config:
+        # Traduce el nombre universal a la ruta real de C:\Users\NombreDeUsuario
+        if folder == "USER_PROFILE":
+            base_path = os.path.expanduser("~")
+        else:
+            base_path = folder
+
+        if not os.path.exists(base_path):
+            logger.warning(f"⚠️ La ruta configurada NO existe: {base_path}")
+            continue
+        print(f"🚀 GANDALF INICIANDO ESCANEO EN: {base_path}")
+        logger.info(f"Mapeando explorador desde la raíz: {base_path}")
+
+        for root, dirs, files in os.walk(base_path):
+            # Evita que os.walk analice ramas o carpetas ocultas
+            dirs[:] = [d for d in dirs if d not in excluded_folders and not d.startswith('.')]
+
+            for file in files:
+                full_path = os.path.join(root, file)
+                file_list.append(full_path)
+    print(f"✨ ESCANEO TERMINADO. Archivos encontrados: {len(file_list)}")
+    return file_list
+
+def run_scheduled_backup(file_list=None):
     # Punto de entrada para el proceso de backup.
     logger.info(" Iniciando escaneo de cambios...")
+
+    if file_list is None:
+        file_list = gather_all_treasures_from_config()
 
     for file_path in file_list:
         # Validación de tipo de archivo

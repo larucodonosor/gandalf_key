@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 SCOPES = ['https://www.googleapis.com/auth/drive']
 
 def get_secure_token_path():
-     # AJUSTE DE RUTA PARA EL EJECUTABLE (.EXE)
+     # Estandariza las rutas para su uso en desarrollo y producción
     if getattr(sys, 'frozen', False):
         base_dir = os.path.dirname(sys.executable)
     else:
@@ -151,6 +151,7 @@ def download_and_decrypt(file_id, output_path):
         # 3. Guardado final
         with open(output_path, 'wb') as f:
             f.write(decrypted_data)
+        return True
 
     except Exception as e:
         logger.error(f"Error al descargar o descifrar el archivo {file_id}: {e}")
@@ -160,3 +161,17 @@ def download_and_decrypt(file_id, output_path):
         # 4. Limpieza
         if os.path.exists(temp_encrypted):
             os.remove(temp_encrypted)
+
+def download_file(file_id):
+    # Descarga el contenido de un archivo de Google Drive directamente a la memoria (en bytes).
+    service = get_drive_service()
+    if not service:
+        logger.error("No se puede descargar de Drive: Servicio no disponible.")
+        return None
+    try:
+        # Descarga directa a memoria RAM
+        request = service.files().get_media(fileId=file_id)
+        return request.execute() # Devuelve los bytes puros cifrados
+    except Exception as e:
+        logger.error(f"Error descargando bytes de Drive para el ID {file_id}: {e}")
+        return None
