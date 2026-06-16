@@ -31,26 +31,12 @@ MEMORY_FILE = os.path.join(_BASE_DIR, "base_memory.json")
 
 def execute_gandalf():
     try:
-        config_treasures = backup_manager.load_config()
-        folders_to_protect = config_treasures.get("protected_folders", ["Documents", "Desktop"])
+        # 1. Carga los archivos usando el recolector dinámico
+        paths_to_scan = backup_manager.gather_all_treasures_from_config()
     except Exception as e:
         logger.error(f"No se pudo cargar la configuración de carpetas protegidas: {e}")
-        folders_to_protect = ["Documents", "Desktop"]
+        return
 
-        # 2. TRADUCTOR DE RUTAS REALES DE WINDOWS
-        # os.path.expanduser("~") calcula automáticamente el "C:\Users\tu_usuario" en cualquier PC
-    user_home = os.path.expanduser("~")
-    paths_to_scan = []
-
-    for folder in folders_to_protect:
-        real_path = os.path.join(user_home, folder)
-        if os.path.exists(real_path):
-            paths_to_scan.append(real_path)
-        else:
-            # Por si existen carpetas de desarrollo directas en la raíz del proyecto
-            if os.path.exists(folder):
-                paths_to_scan.append(os.path.abspath(folder))
-    # 1. Escaneo actual
     current_state = {}
 
     # Determina las rutas absolutas de sus propios archivos de monitorización
@@ -58,28 +44,34 @@ def execute_gandalf():
     my_config_path = os.path.abspath(config_manager.get_secure_config_path())
     my_logs_dir = os.path.abspath("logs")
 
-    # 2. Recorre cada ruta de la lista
-    for path in paths_to_scan:
-        # Escanea UNA carpeta y guarda el resultado temporalmente
-        scan_result = scanner.map_folder(path)
-        if scan_result is not None:
-            for file_path, data in scan_result.items():
-                # Continua si el archivo es propio del sistema
-                abs_file_path = os.path.abspath(file_path)
-                if "node_modules" in abs_file_path or ".git" in abs_file_path or "venv" in abs_file_path:
-                    continue
-                if abs_file_path == my_memory_path or abs_file_path == my_config_path or abs_file_path.startswith(
-                        my_logs_dir):
-                    continue
-                if os.path.basename(file_path).startswith("~$"):
-                    continue
-                # Add to state if it's a "treasure" or general file
-                if backup_manager.is_treasure_extension(file_path):
-                    current_state[file_path] = data
+    # 2. Recorre los archivos que nos ha devuelto el escáner
+    for file_path in paths_to_scan:
+        abs_file_path = os.path.abspath(file_path)
+
+        # Filtros de exclusión para archivos críticos del sistema de Gandalf
+        if abs_file_path == my_memory_path or abs_file_path == my_config_path or abs_file_path.startswith(my_logs_dir):
+            continue
+        if os.path.basename(file_path).startswith("~$"):
+            continue
+
+        # Usa el validador de extensiones dinámico
+        if backup_manager.is_treasure_extension(file_path):
+            try:
+                # Calcula el tamaño y la fecha de modificación para el estado actual
+                file_size = os.path.getsize(file_path)
+                file_mtime = os.path.getmtime(file_path)
+                file_hash = backup_manager.get_file_hash(file_path)  # generador de hash
+
+                current_state[file_path] = {
+                    "size": file_size,
+                    "modified_at": file_mtime,
+                    "hash": file_hash
+                }
+            except Exception:
+                continue  # Si un archivo está bloqueado por el SO, pasa al siguiente
 
     # 3. Intenta cargar la memoria del pasado
     if not os.path.exists(MEMORY_FILE):
-        # Si NO existe, guarda la primera copia y sale
         with open(MEMORY_FILE, "w", encoding="utf-8") as f:
             json.dump(current_state, f, indent=4, ensure_ascii=False)
         return
@@ -117,14 +109,14 @@ def execute_gandalf():
                 # 2. Protocolo de Decisión
                 try:
                     user_config = config_manager.load_config()
-                    # Buscamos si está activo. Si no encuentra la clave, por defecto asumimos False (Modo Seguro activo)
+                    # Busca si está activo. Si no encuentra la clave, por defecto asumimos False (Modo Seguro activo)
                     work_mode_active = user_config.get("security", {}).get("work_mode", False)
                 except Exception:
                     work_mode_active = False
 
                 if work_mode_active:
-                    # 🛠️ MODO TRABAJO ON: No molestamos al usuario.
-                    # Copiamos el cambio directamente a la bóveda local o actualizamos la copia
+                    # 🛠️ MODO TRABAJO ON: No molesta al usuario.
+                    # Copia el cambio directamente a la bóveda local o actualiza la copia
                     vault_path = os.path.join(".gandalf_vault", base_name)
                     shutil.copy2(file, vault_path)
                     logger.info(f"💾 Work Mode Activo: {base_name} actualizado en la bóveda local automáticamente.")

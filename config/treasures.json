@@ -1,12 +1,15 @@
 {
   "treasure_types": {
-    "code": [".py", ".js", ".jsx", ".ts", ".tsx", ".html", ".css", "php"],
+    "code": [".py", ".js", ".jsx", ".ts", ".tsx", ".html", ".css", ".php"],
     "documents": [".docx", ".doc", ".pdf", ".txt", ".md", ".rtf"],
-    "data_config": [".json", ".env", ".yaml", ".ini", ".xml"]
+    "data_config": [".json", ".yaml", ".ini", ".xml"]
   },
   "protected_folders": [
-    "Documents",
-    "Desktop",
-    "Projects"
-  ]
+    "USER_PROFILE"
+  ],
+    "folders_to_ignore" : [
+        "node_modules", ".git", "dist", "build", "venv", ".idea", "__pycache__",
+        "AppData", "Local", "LocalLow", "Roaming", "Microsoft", "Searches",
+        "Saved Games", "Links", "PrintHood", "NetHood", "Recent"
+    ]
 }
