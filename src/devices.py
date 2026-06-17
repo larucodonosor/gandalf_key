@@ -43,7 +43,7 @@ def authorize_new_usb(usb_id, provided_key):
 
     if not master_key:
         logger.error("Error de autenticación: No hay ninguna Master Key configurada en el sistema.")
-        return False, " Error del sistema: Inicializa la Master Key primero."
+        return False, "Error del sistema: Inicializa la Master Key primero."
 
     # Verifica la llave maestra antes de guardar
     if provided_key == master_key:
@@ -53,6 +53,6 @@ def authorize_new_usb(usb_id, provided_key):
             db_path = get_secure_db_path()
             with open(db_path, "w") as f:
                 json.dump(known_devices, f, indent=4)
-        return True, " USB Autorizado con éxito."
+        return True, "USB Autorizado con éxito."
     logger.warning(f"Intento de autorización de USB denegado. Clave incorrecta.")
-    return False, " Clave incorrecta. Acceso denegado."
+    return False, "Clave incorrecta. Acceso denegado."

@@ -11,7 +11,8 @@ import security
 import backup_manager
 import backup_scheduler
 import integrity_utils
-import scanner
+import devices
+import usb_manager
 import logger_manager
 import config_manager
 from server_g_k import app as server_app
@@ -174,17 +175,21 @@ def infinite_surveillance_loop():
         execute_gandalf()
 
         current_usbs = security.obtain_removable_units()
-        # Lógica de comparación de USBs
-        # ¿Hay alguno más?
-        if len(current_usbs) > len(known_usbs):
-            nuevos = [u for u in current_usbs if u not in known_usbs]
-            alerts.light_the_beacons(f"⚠ ¡OJO! Nuevo hardware detectado: {nuevos}")
-            known_usbs = current_usbs  # Actualiza la memoria
+        # Comprueba si hay alguna clave nueva en los USB detectados
+        for drive_letter, hardware_id in current_usbs.items():
+            if drive_letter not in known_usbs:
 
-        # ¿Falta alguno?
-        elif len(current_usbs) < len(known_usbs):
-            alerts.light_the_beacons("ℹ Dispositivo extraído.")
-            known_usbs = current_usbs
+                # COMPROBACIÓN: ¿Este ID de serie está autorizado en el JSON?
+                if not devices.is_usb_authorized(hardware_id):
+                    alerts.light_the_beacons(
+                        f"⚠ ¡ATAQUE FÍSICO! Dispositivo no autorizado con ID {hardware_id} en {drive_letter}",
+                        severity='CRITICO')
+                    # Le pasamos el ID real al bot para que lo registre si confías
+                    alerts.request_usb_authorization(drive_letter, hardware_id)
+                else:
+                    logger.info(f"🔌 USB verificado por número de serie: {hardware_id}")
+
+        known_usbs = current_usbs
 
         time.sleep(WAIT_TIME)
 
@@ -259,8 +264,11 @@ if __name__ == "__main__":
     # 8. Inicia la bandeja
     threading.Thread(target=tray_icon.start_tray, daemon=True).start()
 
-    # 9. INTERFAZ (HILO PRINCIPAL) Con ventana.withdraw() en interface.py, no sale la ventana al arrancar.
+    # 9. Encendidio de la vigilancia pasiva de hardware
     import interface
+    usb_manager.start_passive_surveillance(interface.window)
+
+    # 10. INTERFAZ (HILO PRINCIPAL) Con ventana.withdraw() en interface.py, no sale la ventana al arrancar.
     interface.window.mainloop()
 
 

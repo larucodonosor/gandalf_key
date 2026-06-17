@@ -4,6 +4,7 @@ import requests
 import os
 import time
 import keyring
+import sys
 import security
 import integrity_utils
 import network_utils
@@ -127,6 +128,26 @@ def request_work_mode_verification():
     network_utils.retry_request(lambda: bot.send_message(CHAT_ID, "WORK MODE SOLICITADO!!!\nVerifica tu identidad:", reply_markup=markup,
                      parse_mode="Markdown"))
 
+def request_usb_authorization(usb_drive, hardware_id):
+    if not bot:
+        logger.error("Imposible solicitar autorización de USB: Bot no inicializado.")
+        return
+
+    # Limpia caracteres raros de la letra de la unidad para el callback
+    clean_drive = usb_drive.replace(":", "").replace("\\", "") # 'D:\\' -> 'D'
+
+    markup = InlineKeyboardMarkup()
+    btn_allow = InlineKeyboardButton("Confiar y Registrar", callback_data=f"usb:allow:{clean_drive}:{hardware_id}")
+    btn_block = InlineKeyboardButton("Bloquear / Expulsar", callback_data=f"usb:block:{clean_drive}")
+    markup.add(btn_allow, btn_block)
+
+    text = (
+        f"**ALERTA DE HARDWARE**\n\n"
+        f"Se ha detectado un dispositivo USB no registrado en la unidad: `{usb_drive}`\n\n"
+        f"¿Reconoces este dispositivo como tuyo?"
+    )
+    network_utils.retry_request(lambda: bot.send_message(CHAT_ID, text, reply_markup=markup, parse_mode="Markdown"))
+
 # MANEJADOR DE RESPUESTAS (CALLBACKS)
 if bot:
     @bot.callback_query_handler(func=lambda call: True)
@@ -134,76 +155,123 @@ if bot:
         #importación local, solo se activa si se pulsa el boton correspondiente
         import working_mode_ctrl as wmc
 
-        # Separación de la data
-        data_parts = call.data.split("_", 1)
-        action = data_parts[0]
-        info = data_parts[1] if len(data_parts) > 1 else ""
+        if ":" in call.data:
+            try:
+                data_parts = call.data.split(":")
+                action = data_parts[0]  # "usb"
 
-        if action == "work":
-            if info == "yes":
-                wmc.update_work_mode_status(True)
-                bot.edit_message_text("Work Mode ON", CHAT_ID, call.message.message_id)
-            else:
-                wmc.update_work_mode_status(False)
-                bot.edit_message_text("Work Mode DENIED", CHAT_ID, call.message.message_id)
-            return
+                if action == "usb":
+                    import devices
+                    import usb_manager
 
-        if action in ["quar", "allow"]:
-            action_data = pending_actions.get(info)
+                    usb_action = data_parts[1]  # "allow" o "block"
+                    drive_letter_short = data_parts[2]  # "D"
 
-            if not action_data:
-                bot.edit_message_text("❌ Error: Acción o archivo no encontrado en el registro activo.",
-                                      call.message.chat.id, call.message.message_id)
+                    # Reconstruye la letra según plataforma
+                    drive_letter = f"{drive_letter_short}:\\" if sys.platform.startswith("win") else drive_letter_short
+
+                    if usb_action == "allow":
+                        hardware_id = data_parts[3]  # "USB_SERIAL_7E9F0A65"
+                        master_key = keyring.get_password("Gandalf_Guard", "MASTER_KEY")
+
+                        if not master_key:
+                            bot.edit_message_text("❌ Error crítico: Falta la Master Key.", call.message.chat.id,
+                                                  call.message.message_id)
+                            return
+
+                        success, msg = devices.authorize_new_usb(hardware_id, master_key)
+                        if success:
+                            bot.edit_message_text(
+                                f"Hardware `{hardware_id}` registrado y aprobado de forma permanente.",
+                                call.message.chat.id, call.message.message_id)
+                        else:
+                            bot.edit_message_text(f"❌ Error en registro: {msg}", call.message.chat.id,
+                                                  call.message.message_id)
+                    # PROTOCOLO DE EXPULSIÓN
+                    elif usb_action == "block":
+                        usb_manager.eject_device(drive_letter)
+                        bot.edit_message_text(f"Intruso neutralizado. Unidad `{drive_letter}` expulsada.",
+                                              call.message.chat.id, call.message.message_id)
+
+                    return  # 🚨 CRÍTICO: Cortamos aquí para que jamás baje al split antiguo
+            except Exception as e:
+                logger.error(f"Error procesando callback de USB: {e}")
                 return
-            real_filename = action_data["filename"]
-            real_temp_path = action_data["temp_path"]
 
-            if action == "quar":
-                if os.path.exists(real_temp_path):
-                    final_quarantine_path = os.path.join("quarantine", real_filename)
-                    os.rename(real_temp_path, final_quarantine_path)
-                    bot.edit_message_text(f"☣ `{real_filename}` enviado a cuarentena definitiva.",
-                                          call.message.chat.id, call.message.message_id)
-                    pending_actions.pop(info, None)  # Limpiamos el registro
+        try:
+            # Separación de la data
+            data_parts = call.data.split("_", 1)
+            action = data_parts[0]
+            info = data_parts[1] if len(data_parts) > 1 else ""
+
+            if action == "work":
+                if info == "yes":
+                    wmc.update_work_mode_status(True)
+                    bot.edit_message_text("Work Mode ON", call.message.chat.id, call.message.message_id)
                 else:
-                    bot.edit_message_text("❌ Error: El archivo temporal ya no existe.",
-                                          call.message.chat.id, call.message.message_id)
+                    wmc.update_work_mode_status(False)
+                    bot.edit_message_text("Work Mode DENIED", call.message.chat.id, call.message.message_id)
+                return
 
-            elif action == "allow":
-                # 1. VERIFICACIÓN CRÍTICA DE INTEGRIDAD
-                # Usa el hash que se guardó al detectar el incidente
-                if not integrity_utils.verify_integrity(real_temp_path, action_data["hash"]):
-                    light_the_beacons("🚨 ¡INTENTO DE MANIPULACIÓN DETECTADO!", severity="CRITICO")
-                    bot.edit_message_text("❌ Error: El archivo ha sido manipulado. Abortando.", call.message.chat.id,
-                                      call.message.message_id)
+            if action in ["quar", "allow"]:
+                action_data = pending_actions.get(info)
+
+                if not action_data:
+                    bot.edit_message_text("❌ Error: Acción o archivo no encontrado.", call.message.chat.id,
+                                          call.message.message_id)
                     return
 
-                # 2. LÓGICA DE RESTAURACIÓN SEGÚN ORIGEN
-                success = False
-                if action_data["source"] == "LOCAL":
-                    # Restaurar desde quarantine
-                    success = security.restore_from_quarantine(action_data["temp_path"], action_data["filename"])
+                real_filename = action_data["filename"]
+                real_temp_path = action_data["temp_path"]
 
-                elif action_data["source"] == "CLOUD":
-                    # Restaurar desde Drive (necesitas importar cloud_vault)
-                    import cloud_vault
-                    import index_manager
-                    file_id = index_manager.get_drive_id(action_data["original_path"])
-                    if file_id:
-                        success = cloud_vault.download_and_decrypt(action_data["original_path"], action_data["original_path"])
+                if action == "quar":
+                    if os.path.exists(real_temp_path):
+                        final_quarantine_path = os.path.join("quarantine", real_filename)
+                        os.rename(real_temp_path, final_quarantine_path)
+                        bot.edit_message_text(f"☣ `{real_filename}` enviado a cuarentena definitiva.",
+                                              call.message.chat.id, call.message.message_id)
+                        pending_actions.pop(info, None)
                     else:
-                        bot.edit_message_text("❌ Error: Drive ID not found in local index.", call.message.chat.id, call.message.message_id)
+                        bot.edit_message_text("❌ Error: El archivo temporal ya no existe.", call.message.chat.id,
+                                              call.message.message_id)
+
+                elif action == "allow":
+                    # 1. VERIFICACIÓN CRÍTICA DE INTEGRIDAD
+                    # Usa el hash que se guardó al detectar el incidente
+                    if not integrity_utils.verify_integrity(real_temp_path, action_data["hash"]):
+                        light_the_beacons("🚨 ¡INTENTO DE MANIPULACIÓN DETECTADO!", severity="CRITICO")
+                        bot.edit_message_text("❌ Error: El archivo ha sido manipulado. Abortando.",
+                                              call.message.chat.id, call.message.message_id)
                         return
 
-            # 3. Finalización
-                if success:
-                    bot.edit_message_text(f"✅ `{real_filename}` Restaurado con éxito.", call.message.chat.id,
-                                      call.message.message_id)
-                    pending_actions.pop(info)  # Limpia el registro
-                else:
-                    bot.edit_message_text(f"❌ Error al restaurar `{real_filename}`", call.message.chat.id,
-                                      call.message.message_id)
+                    # 2. LÓGICA DE RESTAURACIÓN SEGÚN ORIGEN
+                    success = False
+                    if action_data["source"] == "LOCAL":
+                        # Restaurar desde quarantine
+                        success = security.restore_from_quarantine(action_data["temp_path"], action_data["filename"])
+                    elif action_data["source"] == "CLOUD":
+                        # Restaurar desde Drive
+                        import cloud_vault
+                        import index_manager
+                        file_id = index_manager.get_drive_id(action_data["original_path"])
+                        if file_id:
+                            success = cloud_vault.download_and_decrypt(action_data["original_path"],
+                                                                       action_data["original_path"])
+                        else:
+                            bot.edit_message_text("❌ Error: Drive ID not found.", call.message.chat.id,
+                                                  call.message.message_id)
+                            return
 
+                    # 3. Finalización
+                    if success:
+                        bot.edit_message_text(f"✅ `{real_filename}` Restaurado con éxito.", call.message.chat.id,
+                                              call.message.message_id)
+                        pending_actions.pop(info, None)
+                    else:
+                        bot.edit_message_text(f"❌ Error al restaurar `{real_filename}`", call.message.chat.id,
+                                              call.message.message_id)
+        except Exception as e:
+            logger.error(f"Error procesando callback estándar: {e}")
 
 # Función para arrancar el bot en main
 def start_bot_polling():

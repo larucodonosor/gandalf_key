@@ -6,6 +6,7 @@ from tkinter import messagebox
 import tkinter as tk
 import pyautogui
 import time
+import ctypes
 import logging
 
 logger = logging.getLogger(__name__)
@@ -48,11 +49,39 @@ def restore_file(affected_path):
         return False
 # PROTECCIÓN USB
 def obtain_removable_units():
-    units = []
+    units = {}
+    os_type = sys.platform
     for partition in psutil.disk_partitions():
         # En Windows, los USB suelen aparecer como 'removable'
         if 'removable' in partition.opts or 'cdrom' in partition.opts:
-            units.append(partition.device)
+            drive_letter = partition.device  # Ej: 'D:\\'
+
+            # OBTENCIÓN DE LA HUELLA DACTILAR ÚNICA
+            if os_type.startswith("win"):
+                try:
+                    volume_serial = ctypes.c_ulong()
+                    # Llama a la API de Windows para sacar el número de serie real del hardware
+                    ctypes.windll.kernel32.GetVolumeInformationW(
+                        ctypes.c_wchar_p(drive_letter), None, 0,
+                        ctypes.byref(volume_serial), None, None, None, 0
+                    )
+                    # Convierte el número a una cadena hexadecimal única (ej: 'A1B2C3D4')
+                    hardware_id = f"USB_SERIAL_{hex(volume_serial.value).upper()[2:]}"
+                except Exception:
+                    hardware_id = "UNKNOWN_WINDOWS_DEVICE"
+
+            elif os_type.startswith("linux"):
+                try:
+                    hardware_id = os.path.basename(os.path.realpath(drive_letter))
+                except Exception:
+                    hardware_id = "GENERIC_LINUX_USB"
+            elif os_type.startswith("darwin"):  # macOS
+                hardware_id = drive_letter.replace("/Volumes/", "MAC_USB_")
+            else:
+                hardware_id = "GENERIC_USB_ID"
+
+            units[drive_letter] = hardware_id
+
     return units
 
 # AVISOS DEL SISTEMA
