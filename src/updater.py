@@ -8,7 +8,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-CURRENT_VERSION = "1.0.0"
+CURRENT_VERSION = "1.1.0"
 
 # Estandariza las rutas para desarrollo y producción
 if getattr(sys, 'frozen', False):
