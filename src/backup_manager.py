@@ -106,9 +106,9 @@ def gather_all_treasures_from_config():
             base_path = folder
 
         if not os.path.exists(base_path):
-            logger.warning(f"⚠️ La ruta configurada NO existe: {base_path}")
+            logger.warning(f"La ruta configurada NO existe: {base_path}")
             continue
-        print(f"🚀 GANDALF INICIANDO ESCANEO EN: {base_path}")
+
         logger.info(f"Mapeando explorador desde la raíz: {base_path}")
 
         for root, dirs, files in os.walk(base_path):
@@ -118,12 +118,12 @@ def gather_all_treasures_from_config():
             for file in files:
                 full_path = os.path.join(root, file)
                 file_list.append(full_path)
-    print(f"✨ ESCANEO TERMINADO. Archivos encontrados: {len(file_list)}")
+    logger.info(f"ESCANEO TERMINADO. Archivos encontrados: {len(file_list)}")
     return file_list
 
 def run_scheduled_backup(file_list=None):
     # Punto de entrada para el proceso de backup.
-    logger.info(" Iniciando escaneo de cambios...")
+    logger.info("Iniciando escaneo de cambios...")
 
     if file_list is None:
         file_list = gather_all_treasures_from_config()

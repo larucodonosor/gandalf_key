@@ -151,7 +151,7 @@ def action_recover_single():
 def action_recover_all():
     # Lógica de para recuperar el índice completo
     confirm = messagebox.askyesno(
-        "🚨 ALERTA MÁXIMA",
+        "ALERTA MÁXIMA",
         "¿Iniciar una restauración completa?\n Los archivos se recuperaran desde el último backup.\n Puede que pierda información en el proceso."
     )
     if not confirm:
