@@ -193,6 +193,14 @@ def infinite_surveillance_loop():
 
         time.sleep(WAIT_TIME)
 
+# Consulta la disponibilidad de actualizaciones al arrancar y luego cada 24 horas.
+def infinite_updater_loop(root_window):
+    while True:
+        # Pasa la referencia de la ventana gráfica para que el Pop-up se ejecute en el hilo visual
+        updater.check_for_updates_silently(root_window)
+        # Duerme 24 horas (60s * 60m * 24h)
+        time.sleep(86400)
+
 if __name__ == "__main__":
     print(f"🛡️ Gandalf v{updater.CURRENT_VERSION} iniciando guardia...")
 
@@ -268,7 +276,10 @@ if __name__ == "__main__":
     import interface
     usb_manager.start_passive_surveillance(interface.window)
 
-    # 10. INTERFAZ (HILO PRINCIPAL) Con ventana.withdraw() en interface.py, no sale la ventana al arrancar.
+    # 10. Actualizador automatizado
+    threading.Thread(target=infinite_updater_loop, args=(interface.window,), daemon=True).start()
+
+    # 11. INTERFAZ (HILO PRINCIPAL) Con ventana.withdraw() en interface.py, no sale la ventana al arrancar.
     interface.window.mainloop()
 
 
