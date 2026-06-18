@@ -116,7 +116,9 @@ def apply_update():
     if getattr(sys, 'frozen', False):
         exe_path = os.path.abspath(sys.executable)
     else:
-        exe_path = os.path.join(_BASE_DIR, f"gandalf{suffix}")
+        exe_path = os.path.join(_BASE_DIR, f"gandalf_key{suffix}")
+
+    exe_name = os.path.basename(exe_path)
 
     update_exe_path = os.path.join(_BASE_DIR, f"gandalf_update{suffix}")
 
@@ -126,7 +128,7 @@ def apply_update():
         bat_content = f"""@echo off
         timeout /t 2 /nobreak > nul
         del "{exe_path}"
-        ren "{update_exe_path}" "{exe_path}"
+        ren "{update_exe_path}" "{exe_name}"
         start "" "{exe_path}"
         del "%~f0"
         """
@@ -143,7 +145,7 @@ def apply_update():
         rm "{exe_path}"
         mv "{update_exe_path}" "{exe_path}"
         chmod +x "{exe_path}"
-        ./"{exe_path}" &
+        ./"{exe_name}" &
         rm "$0"
         """
         with open(sh_path, "w", encoding='utf-8') as f:
