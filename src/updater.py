@@ -119,40 +119,57 @@ def apply_update():
         exe_path = os.path.join(_BASE_DIR, f"gandalf_key{suffix}")
 
     exe_name = os.path.basename(exe_path)
-
     update_exe_path = os.path.join(_BASE_DIR, f"gandalf_update{suffix}")
 
     if current_os == "Windows":
         bat_path = os.path.join(_BASE_DIR, "update.bat")
         # El script de Windows
         bat_content = f"""@echo off
-        timeout /t 2 /nobreak > nul
-        del "{exe_path}"
-        ren "{update_exe_path}" "{exe_name}"
-        start "" "{exe_path}"
-        del "%~f0"
-        """
+setlocal disabledelayedexpansion
+set _MEIPASS=
+timeout /t 3 /nobreak > nul
+        
+:loop
+taskkill /f /im "Gandalf_key.exe" >nul 2>&1
+del "{exe_path}" >nul 2>&1
+if exist "{exe_path}" (
+    timeout /t 1 /nobreak > nul
+    goto loop
+)
+ren "{update_exe_path}" "{exe_name}"
+timeout /t 1 /nobreak > nul
+start "" "{exe_path}"
+del "%~f0" & exit
+"""
         with open(bat_path, "w", encoding="utf-8") as f:
             f.write(bat_content)
 
-        logger.info("Script puente Windows (update.bat) generado. Ejecutando actualización...")
-        subprocess.Popen(["cmd.exe", "/c", bat_path], cwd=_BASE_DIR)
+        logger.info("Lanzando mutación desvinculada a través del kernel...")
+
+        # Usa 'start' nativo de cmd para romper la herencia de variables de entorno
+        subprocess.Popen(
+            f'cmd.exe /c start "" "{bat_path}"',
+            shell=True,
+            creationflags=subprocess.CREATE_NEW_CONSOLE | subprocess.DETACHED_PROCESS
+        )
+
+        # Cierra Gandalf inmediatamente
+        sys.exit(0)
     else:
         # Lógica para Linux/macOS (.sh)
         sh_path = os.path.join(_BASE_DIR, "update.sh")
         sh_content = f"""#!/bin/bash
-        sleep 2
-        rm "{exe_path}"
-        mv "{update_exe_path}" "{exe_path}"
-        chmod +x "{exe_path}"
-        ./"{exe_name}" &
-        rm "$0"
-        """
+sleep 2
+rm "{exe_path}"
+mv "{update_exe_path}" "{exe_path}"
+chmod +x "{exe_path}"
+./"{exe_name}" &
+rm "$0"
+"""
         with open(sh_path, "w", encoding='utf-8') as f:
             f.write(sh_content)
 
         logger.info("Script puente Unix (update.sh) generado. Ejecutando mutación...")
         subprocess.Popen(["sh", sh_path],cwd=_BASE_DIR)
-
-    # Cierra el Gandalf actual inmediatamente
-    sys.exit()
+        # Cierra el Gandalf actual inmediatamente
+        sys.exit(0)
