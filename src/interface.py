@@ -263,7 +263,7 @@ except Exception:
 
 gui_utils.deploy_context_menu(window)
 # Icono
-icon_path = get_resource_path(os.path.join("img", "gandalf_grey.ico"))
+icon_path = get_resource_path(os.path.join("img", "g_logo_3.ico"))
 try:
     window.iconbitmap(icon_path)
 except:
