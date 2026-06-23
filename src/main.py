@@ -17,6 +17,7 @@ import logger_manager
 import config_manager
 from server_g_k import app as server_app
 import updater
+import wizard_cane
 import logging
 
 logger = logging.getLogger(__name__)
@@ -236,17 +237,7 @@ if __name__ == "__main__":
         # ARRANQUE REAL POST-CONFIGURACIÓN
 
     # 1. Intenta registrar el ejecutable en el arranque de Windows de forma silenciosa
-    try:
-        if getattr(sys, 'frozen', False):
-            import winreg
-
-            exe_path = os.path.abspath(sys.executable)
-            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Run", 0,
-                                 winreg.KEY_SET_VALUE)
-            winreg.SetValueEx(key, "Gandalf_key", 0, winreg.REG_SZ, f'"{exe_path}"')
-            winreg.CloseKey(key)
-    except Exception:
-        pass
+    wizard_cane.ensure_persistence()
 
     # 2. Hilo de telegram (Polling) daemon=True para que se cierre si se cierra el programa principal
     token_telegram = keyring.get_password("Gandalf_Guard", "TELEGRAM_TOKEN")
