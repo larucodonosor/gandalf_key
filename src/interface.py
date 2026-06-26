@@ -263,10 +263,14 @@ except Exception:
 
 gui_utils.deploy_context_menu(window)
 # Icono
-icon_path = get_resource_path(os.path.join("img", "g_logo_3.ico"))
+if getattr(sys, 'frozen', False):
+    icon_path = get_resource_path("g_logo_3.ico")
+else:
+    icon_path = get_resource_path(os.path.join("img", "g_logo_3.ico"))
 try:
     window.iconbitmap(icon_path)
 except:
+    print(f"Tkinter no encuentra el icono en: {icon_path}.")
     pass
 
 canvas = tk.Canvas(window, width=750, height=500, highlightthickness=0)
