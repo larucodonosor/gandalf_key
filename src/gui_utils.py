@@ -2,11 +2,6 @@ import tkinter as tk
 
 
 def deploy_context_menu(window):
-    # Vincula de forma automática el clic derecho de cualquier ventana
-    # o widget de Tkinter a un menú contextual de Copiar, Cortar y Pegar.
-    # window.bind_all("<Control-v>", lambda e: e.widget.event_generate("<<Paste>>"))
-    # window.bind_all("<Control-c>", lambda e: e.widget.event_generate("<<Copy>>"))
-    # window.bind_all("<Control-x>", lambda e: e.widget.event_generate("<<Cut>>"))
 
     def deploy_menu(event):
         widget_under_mouse = window.winfo_containing(event.x_root, event.y_root)

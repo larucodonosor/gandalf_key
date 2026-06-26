@@ -2,11 +2,12 @@ import os
 import shutil
 import psutil
 import sys
-from tkinter import messagebox
-import tkinter as tk
 import pyautogui
 import time
 import ctypes
+import threading
+import gui_components
+import interface
 import logging
 
 logger = logging.getLogger(__name__)
@@ -88,28 +89,53 @@ def obtain_removable_units():
 def visual_warning(url, severity= "BLOQUEAR"):
 
     if severity == "BLOQUEAR":
-        box_title = "🛡️ BLOQUEO DE SEGURIDAD - GANDALF"
-        box_message = f" Este sitio es PELIGROSO:\n\n{url}\n\n¿Quieres que Gandalf bloquee el acceso y te saque de aquí?"
+        heading = "BLOQUEO DE SEGURIDAD"
+        description = (
+        f" Sitio web PELIGROSO:\n\n{url}\n\n¿Quieres que Gandalf bloquee el acceso\ny mantenga a salvo la sesión?"
+        )
+        decision = {"accion": "NADA"}
+        popup_closed = threading.Event()
 
+        def evacuate():
+            decision["accion"] = "EVACUAR"
+            popup_closed.set()
+
+        def ignore():
+            decision["accion"] = "IGNORAR"
+            popup_closed.set()
+
+        def throw_popup():
+            popup = gui_components.DarkNotificationPopup(
+                interface.window,
+                title="Gandalf_key — Seguridad",
+                heading=heading,
+                description=description,
+                button_text="¡Sácame de aquí!",
+                callback_action=evacuate,
+                secondary_button_text="Ignorar",
+                secondary_callback=ignore,
+                is_alert=True
+            )
+            popup.show()
+
+            # popup.root.destroy()
         try:
-            # Configura verify_integrity la interfaz de Tkinter
-            root = tk.Tk()
-            root.withdraw()
-            root.attributes("-topmost", True) # Esto hace que salga por encima de todo
-
-            # askyesno: Si dice SI (quiere que le saque), ejecutamos pyautogui
-            get_me_out = messagebox.askyesno(box_title, box_message, master=root)
-            if get_me_out:
-                root.destroy()
-                time.sleep(0.2)
+            interface.window.after_idle(throw_popup)
+            popup_closed.wait()
+            time.sleep(0.3)
+            # Evalua la decisión del user
+            if decision["accion"] == "EVACUAR":
+                logger.info("El usuario confirma evacuación.")
                 pyautogui.hotkey('alt', 'left')
-                return False  # No es seguro seguir, la acción de seguridad se activó
-            root.destroy()
-            return False
-        except Exception as e:
-            logger.error(f"Error en la llamada gráfica de advertencia: {e}")
-            return False
+                return False
 
+            elif decision["accion"] == "IGNORAR":
+                logger.warning("El usuario decidió continuar en la URL peligrosa.")
+                return True  # Retorna True para permitir el paso
+
+        except Exception as e:
+            logger.error(f"Error en la llamada de advertencia: {e}")
+            return False
     return True # Es seguro o el usuario asume el riesgo
 
 def restore_from_quarantine(temp_path, original_name):

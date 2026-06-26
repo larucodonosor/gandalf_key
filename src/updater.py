@@ -3,13 +3,13 @@ import os
 import subprocess
 import platform
 import requests
-from tkinter import messagebox
+import interface
 import network_utils
 import logging
 
 logger = logging.getLogger(__name__)
 
-CURRENT_VERSION = "1.1.0"
+CURRENT_VERSION = "1.0.0"
 
 GITHUB_USER = "larucodonosor"
 GITHUB_REPO = "Gandalf_key"
@@ -19,7 +19,6 @@ if getattr(sys, 'frozen', False):
     _BASE_DIR = os.path.dirname(sys.executable)
 else:
     _BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
 
 def parse_version(version_str):
     # Limpia caracteres como 'v' y convierte '1.1.0' en una tupla (1, 1, 0) para comparar.
@@ -76,16 +75,27 @@ def check_for_updates_silently(root_window=None):
     except Exception as e:
         logger.error(f"Error durante el chequeo automático de versión: {e}")
 
-
 def show_update_notification(new_version):
-    # Despliega el aviso imperativo en la UI informando al usuario del reinicio inminente.
-    messagebox.showinfo(
-        "Actualización Obligatoria de Seguridad",
-        f"Se ha detectado e instalado de forma automática la versión {new_version} de Gandalf.\n\n"
-        "Para mantener tu equipo protegido el sistema se reiniciará inmediatamente.",
+    from gui_components import DarkNotificationPopup
+
+    # Define el contenido específico para el éxito de la actualización
+    heading = "¡Búnker Fortificado con Éxito!"
+    description = (
+        f"Se ha descargado e inyectado la versión {new_version}.\n\n"
+        "Para aplicar las actualizaciones contra amenazas,\n"
+        "Gandalf se reiniciará de forma inmediata."
     )
-    # Una vez que el usuario cierra el Pop-up (aceptando los hechos), muta el ejecutable
-    apply_update()
+
+    # Llama a la plantilla unificada y le pasa la acción final
+    popup = DarkNotificationPopup(
+        interface.window,
+        title="Gandalf Security — Actualización del Sistema",
+        heading=heading,
+        description=description,
+        button_text="Reiniciar Centinela ⚡",
+        callback_action=apply_update  # Pasamos la función como variable SIN paréntesis
+    )
+    popup.show()
 
 def download_new_version(url, target_name):
     target_path = os.path.join(_BASE_DIR, target_name)

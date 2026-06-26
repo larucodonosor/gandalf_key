@@ -1,6 +1,4 @@
 from cryptography.fernet import Fernet
-import os
-import sys
 import base64
 import hashlib
 import keyring

@@ -1,8 +1,8 @@
 import tkinter as tk
-from tkinter import messagebox
 import keyring
 import config_manager
 import gui_utils
+import gui_components
 from components_UX.panel_backups import PanelBackups
 from components_UX.panel_apis import PanelAPIs
 from components_UX.panel_master_key import PanelMasterKey
@@ -60,9 +60,24 @@ class ConfigController(tk.Tk):
         if isinstance(self.current_panel, PanelMasterKey):
             if data.get("master_key") == data.get("confirm_key") and data.get("master_key"):
                 keyring.set_password("Gandalf_Guard", "MASTER_KEY", data["master_key"].strip())
-                messagebox.showinfo("Gandalf", "Master Key actualizada.")
+                popup = gui_components.DarkNotificationPopup(
+                    title="Gandalf_key — Configuración",
+                    heading="¡Llave Maestra actualizada!",
+                    description="La nueva clave de cifrado ha sido registrada con éxito.",
+                    button_text="Cerrar",
+                    callback_action=None
+                )
+                popup.show()
             else:
-                messagebox.showerror("Error", "Las claves no coinciden.")
+                # Error en coincidencia de claves
+                popup = gui_components.DarkNotificationPopup(
+                    title="Gandalf_key — Error",
+                    heading="¡Atención!",
+                    description="Las contraseñas introducidas no coinciden.",
+                    button_text="Reintentar",
+                    callback_action=None
+                )
+                popup.show()
                 return
 
         elif isinstance(self.current_panel, PanelAPIs):
@@ -71,7 +86,14 @@ class ConfigController(tk.Tk):
             keyring.set_password("Gandalf_Guard", "CHAT_ID", data.get("chat_id", "").strip())
             keyring.set_password("Gandalf_Guard", "GOOGLE_CLIENT_ID", data.get("google_client_id", "").strip())
             keyring.set_password("Gandalf_Guard", "GOOGLE_CLIENT_SECRET", data.get("google_client_secret", "").strip())
-            messagebox.showinfo("Gandalf", "APIs sincronizadas en el llavero.")
+            popup = gui_components.DarkNotificationPopup(
+                title="Gandalf_key — Configuración",
+                heading="¡Credenciales Sincronizadas!",
+                description="Los tokens de APIs y accesos Cloud\nse han guardado con éxito.",
+                button_text="Cerrar",
+                callback_action=None
+            )
+            popup.show()
 
         elif isinstance(self.current_panel, PanelBackups):
             config = {
@@ -83,7 +105,14 @@ class ConfigController(tk.Tk):
                 }
             }
             config_manager.keep_config(config)
-            messagebox.showinfo("Gandalf", "Configuración de Backups actualizada en disco.", parent=self)
+            popup = gui_components.DarkNotificationPopup(
+                title="Gandalf_key — Configuración",
+                heading="¡Periodización actualizada!",
+                description="La planificación de copias de seguridad\nha sido guardada con éxito.",
+                button_text="Cerrar",
+                callback_action=None
+            )
+            popup.show()
         # Devuelve el control a la interfaz principal
         self.destroy()
 
@@ -116,15 +145,28 @@ class ConfigController(tk.Tk):
             master_key = data.get("master_key", "").strip()
             confirm_key = data.get("confirm_key", "").strip()
 
-            # Candado 1: Campo vacío
+            # Alerta campo vacío
             if not master_key:
-                messagebox.showwarning("🛡️ Gandalf Guard",
-                                       "¡Atención! La Master Key es obligatoria para inicializar el cifrado.")
+                popup = gui_components.DarkNotificationPopup(
+                    title="Gandalf_key — Configuración",
+                    heading="¡Acción necesaria!",
+                    description="La Master Key es obligatoria para inicializar el sistema.",
+                    button_text="Configurar",
+                    callback_action=None
+                )
+                popup.show()
                 return  # Congela la pantalla aquí
 
-            # Candado 2: Contraseñas diferentes
+            # Alerta contraseñas diferentes
             if master_key != confirm_key:
-                messagebox.showerror("Error", "Las contraseñas no coinciden. Por favor, verifícalas.")
+                popup = gui_components.DarkNotificationPopup(
+                    title="Gandalf_key — Error",
+                    heading="¡Fallo de verificación!",
+                    description="Las contraseñas no coinciden.\nAsegúrate de escribir la misma contraseña en ambos campos.",
+                    button_text="Reintentar",
+                    callback_action=None
+                )
+                popup.show()
                 return  # Congelar la pantalla aquí
 
             # Si pasa los dos candados con éxito, guarda de forma segura en el llavero
@@ -133,7 +175,7 @@ class ConfigController(tk.Tk):
             self.show_wizard_step(to_step)
 
         elif from_step == 2:
-            # 🚀 Captura los datos del PanelAPIs
+            # Captura los datos del PanelAPIs
             data = self.current_panel.get_data()
 
             # Guarda en el llavero con los nombres oficiales definitivos
@@ -163,9 +205,14 @@ class ConfigController(tk.Tk):
         # Filtro de seguridad para la 'X' de la ventana
         # Si esta en el asistente inicial y NO hay una clave guardada en el sistema...
         if self.is_setup_wizard and not keyring.get_password("Gandalf_Guard", "MASTER_KEY"):
-            messagebox.showwarning("Cierre Bloqueado 🚫",
-                                   "Debes configurar la Master Key obligatoriamente para inicializar las defensas de Gandalf antes de salir.",
-                                   parent=self)
+            popup = gui_components.DarkNotificationPopup(
+                title="Gandalf_key — Cierre Bloqueado",
+                heading="¡Acción Requerida!",
+                description="Debes configurar la Master Key obligatoriamente \nantes de cerrar el asistente.",
+                button_text="Volver al Asistente",
+                callback_action=None
+            )
+            popup.show()
         else:
             # Si ya hay clave o no es el asistente de instalación, permite cerrar normalmente
             self.destroy()
@@ -175,7 +222,14 @@ class ConfigController(tk.Tk):
 
     def finish_setup(self):
         # Lógica global de guardado
-        messagebox.showinfo("Gandalf", "Instalación completada. Protegiendo tesoros...")
+        popup = gui_components.DarkNotificationPopup(
+            title="Gandalf_key — Configuración",
+            heading="¡Instalación Completada con éxito!",
+            description="La instalación ha concluido.\nGandalf está vigilando y protegiendo tus tesoros.",
+            button_text="Activar Vigilancia ⚡",
+            callback_action=None
+        )
+        popup.show()
         self.destroy()
 
 
