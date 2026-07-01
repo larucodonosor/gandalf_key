@@ -33,7 +33,7 @@ def start_tray():
     global icon_instance
     if getattr(sys, 'frozen', False):
         # En producción
-        icon_path = get_resource_path("g_logo_3.ico")
+        icon_path = get_resource_path(os.path.join("img","g_logo_3.ico"))
     else:
         # En desarrollo
         icon_path = get_resource_path(os.path.join("img", "g_logo_3.ico"))

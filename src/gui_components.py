@@ -5,17 +5,24 @@ from PIL import Image, ImageTk
 
 
 class DarkNotificationPopup:
-    def __init__(self, master, title, heading, description, button_text, callback_action, icon_name="g_logo_3", secondary_button_text=None, secondary_callback=None, is_alert=False):
-        # self.root = tk.Tk()
-        # self.root.withdraw()  # Oculta la raíz para controlar solo el Toplevel
+    def __init__(self, master=None, title="", heading="", description="", button_text="OK", callback_action="None", icon_name="g_logo_3", secondary_button_text=None, secondary_callback=None, is_alert=False):
+        # Si no se pasa master, usa la raiz principal de Tkinter activa en la memoria
+        if master is None:
+            try:
+                master = tk._default_root
+            except Exception:
+                pass
 
-        self.popup = tk.Toplevel()
+        self.popup = tk.Toplevel(master)
         self.popup.title(title)
         self.popup.geometry("630x450")
         self.popup.configure(bg="#0f172a")
         self.popup.resizable(False, False)
-        self.popup.transient(master)
-        self.popup.grab_set()
+        self.popup.attributes("-topmost", True)
+
+        # Si existe master, hace el transient para que se acople perfectamente
+        if master:
+            self.popup.transient(master)
 
         # Evita el cierre accidental si se requiere acción imperativa
         if callback_action or secondary_callback:
@@ -27,23 +34,21 @@ class DarkNotificationPopup:
         # Carga el icono
         def _get_resource_path(relative_path):
             if getattr(sys, 'frozen', False):
-                base_path = sys._MEIPASS
+                base_path = os.path.join(sys._MEIPASS, 'img')
             else:
                 base_path = os.path.dirname(os.path.abspath(__file__))
+                if not base_path.endswith("img"):
+                    base_path = os.path.join(base_path, "img")
+
+                    # Doble verificación por si 'img' está fuera de 'src':
+                    if not os.path.exists(base_path):
+                        root_project = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                        base_path = os.path.join(root_project, "src", "img")
             return os.path.join(base_path, relative_path)
 
         # Carga el icono en el marco
         try:
-            if getattr(sys, 'frozen', False):
-                self.icon_path = _get_resource_path(f"{icon_name}.ico")
-            else:
-                self.icon_path = _get_resource_path(os.path.join("img", f"{icon_name}.ico"))
-
-                # Doble verificación en desarrollo por si 'img' está fuera de 'src':
-                if not os.path.exists(self.icon_path):
-                    root_project = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-                    self.icon_path = os.path.join(root_project, "src", "img", f"{icon_name}.ico")
-
+            self.icon_path = _get_resource_path(f"{icon_name}.ico")
             self.popup.iconbitmap(self.icon_path)
         except:
             self.icon_path = None
@@ -55,11 +60,7 @@ class DarkNotificationPopup:
         # Imagen Dinámica
         uploaded_img = False
         try:
-            if getattr(sys, 'frozen', False):
-                png_path = _get_resource_path(f"{icon_name}.png")
-            else:
-                root_project = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-                png_path = os.path.join(root_project, "src", "img", f"{icon_name}.png")
+            png_path = _get_resource_path(f"{icon_name}.png")
 
             if os.path.exists(png_path):
                 img = Image.open(png_path).convert("RGBA")
@@ -69,8 +70,7 @@ class DarkNotificationPopup:
                 lbl_logo = tk.Label(frame, image=self.img_tk, bg="#0f172a")
                 lbl_logo.pack(pady=10)
                 uploaded_img = True
-
-        except:
+        except Exception:
             if not uploaded_img:
                 tk.Label(frame, text="✨ GANDALF GUARD ✨", font=("Segoe UI", 10, "bold"), bg="#0f172a",
                          fg="#a3e635").pack(pady=10)
@@ -119,4 +119,8 @@ class DarkNotificationPopup:
         self.popup.destroy()
 
     def show(self):
-        pass
+        self.popup.deiconify()
+        self.popup.lift()
+        self.popup.focus_force()
+        self.popup.grab_set()  # Bloquea la interacción con ventanas inferiores de la App hasta cerrar esta
+        self.popup.update()

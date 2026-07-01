@@ -103,7 +103,7 @@ def action_recover_single():
         messagebox.showinfo("Sala de Resurrección", "El búnker está vacío. No hay archivos protegidos que revivir.")
         return
 
-        # Crea una ventana emergente para mostrar la lista de archivos protegidos
+    # Crea una ventana emergente para mostrar la lista de archivos protegidos
     list_window = tk.Toplevel(window)
     list_window.title("Selecciona el Tesoro a Retaurar 🪄")
     list_window.geometry("500x350")
@@ -242,7 +242,7 @@ def run_analysis(url, modo="Auto"):
 def background_monitor():
     last_url = ""
     while True:
-        detected_url = vigilance.get_brownser_url()
+        detected_url = vigilance.get_browser_url()
         if detected_url and detected_url != last_url:
             last_url = detected_url
             # Actualiza la interfaz de forma segura
@@ -264,7 +264,7 @@ except Exception:
 gui_utils.deploy_context_menu(window)
 # Icono
 if getattr(sys, 'frozen', False):
-    icon_path = get_resource_path("g_logo_3.ico")
+    icon_path = get_resource_path(os.path.join("img","g_logo_3.ico"))
 else:
     icon_path = get_resource_path(os.path.join("img", "g_logo_3.ico"))
 try:
