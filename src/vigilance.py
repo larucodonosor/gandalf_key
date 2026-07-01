@@ -55,7 +55,7 @@ def analyze_url(url):
         return "ERROR", f"Error de conexión: {str(e)}"
 
 
-def get_brownser_url():
+def get_browser_url():
     # Detecta si hay una URL en el título de la ventana activa.
     try:
         active_window = gw.getActiveWindow()

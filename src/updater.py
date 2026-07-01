@@ -9,7 +9,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-CURRENT_VERSION = "1.0.0"
+CURRENT_VERSION = "1.2.0"
 
 GITHUB_USER = "larucodonosor"
 GITHUB_REPO = "Gandalf_key"
