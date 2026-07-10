@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import threading
-import vigilance  # Tu módulo de análisis
+import vigilance
 import alerts
 import security
 import firewall_rules

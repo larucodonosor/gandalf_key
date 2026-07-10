@@ -29,7 +29,7 @@ def analyze_url(url):
 
         # Si la URL es nueva y VT no la tiene, se solicita un escaneo
         if response.status_code == 404:
-            return "DESCONOCIDO", "URL no analizada previamente. ¡Hulle insensato!"
+            return "DESCONOCIDO", "URL no analizada previamente. ¡Huye insensato!"
 
         if response.status_code != 200:
             logger.warning(f"VirusTotal respondió con un estado inesperado: {response.status_code}")
