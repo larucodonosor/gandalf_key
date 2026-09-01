@@ -3,11 +3,7 @@ import keyring
 import threading
 import tray_icon
 import alerts
-# import security
-# import backup_manager
 import backup_scheduler
-# import integrity_utils
-# import devices
 import usb_manager
 import logger_manager
 import config_manager
