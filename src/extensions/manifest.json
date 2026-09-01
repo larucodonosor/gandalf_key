@@ -1,0 +1,10 @@
+{
+  "manifest_version": 3,
+  "name": "Gandalf Web Guard",
+  "version": "1.2.0",
+  "description": "Chivato de URLs para el búnker de Gandalf",
+  "permissions": ["webNavigation", "tabs"],
+  "background": {
+    "service_worker": "background.js"
+  }
+}
