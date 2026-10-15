@@ -12,15 +12,10 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 CORS(app)  # Esto permite que Chrome hable con Python
 
+def dispatch_security_action(url, result, report):
 
-@app.route('/analizar', methods=['POST'])
-def analyze():
-    data = request.json
-    url = data.get("url")
-
-    logger.info(f" Recibida URL desde el navegador: {url}")
-
-    result, report = vigilance.analyze_url(url)
+    # Función llamada directamente por el centinela nativo en segundo plano.
+    logger.info(f"Procesando acción de seguridad: {url} -> {result}")
 
     # Peligro
     if result == "BLOQUEAR":
@@ -38,7 +33,7 @@ def analyze():
 
     # Alerta
     elif result == "DESCONOCIDO":
-        alerts.light_the_beacons(f" SITIO SOSPECHOSO: {url}\n{report}")
+        alerts.light_the_beacons(f" SITIO SOSPECHOSO: {url}\n{report}", severity='CRITICO')
         if firewall_rules.is_browser_in_focus():
             popup_thread = threading.Thread(
                 target=security.visual_warning,
@@ -51,6 +46,19 @@ def analyze():
         # 3. OK
     else:
         logger.info(f"Sitio verificado y limpio: {url}")
+
+@app.route('/analizar', methods=['POST'])
+def analyze():
+
+    # Ruta HTTP auxiliar mantenida por si algún componente secundario la usa.
+    data = request.json or {}
+    url = data.get("url")
+
+    if not url:
+        return jsonify({"status": "error", "message": "No URL provided"}), 400
+
+    result, report = vigilance.analyze_url(url)
+    dispatch_security_action(url, result, report)
 
     return jsonify({"status": "recibido", "resultado": result})
 

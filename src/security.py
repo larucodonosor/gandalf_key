@@ -93,7 +93,7 @@ def visual_warning(url, severity= "BLOQUEAR"):
         description = (
         f" Sitio web PELIGROSO:\n\n{url}\n\n¿Quieres que Gandalf bloquee el acceso\ny mantenga a salvo la sesión?"
         )
-        decision = {"accion": "NADA"}
+        decision = {"accion": "EVACUAR"}
         popup_closed = threading.Event()
 
         def evacuate():
@@ -118,7 +118,6 @@ def visual_warning(url, severity= "BLOQUEAR"):
             )
             popup.show()
 
-            # popup.root.destroy()
         try:
             interface.window.after_idle(throw_popup)
             popup_closed.wait()
@@ -126,7 +125,12 @@ def visual_warning(url, severity= "BLOQUEAR"):
             # Evalua la decisión del user
             if decision["accion"] == "EVACUAR":
                 logger.info("El usuario confirma evacuación.")
-                pyautogui.hotkey('alt', 'left')
+                # pyautogui.hotkey('alt', 'left')
+                # Atajo universal de cierre de pestaña según plataforma
+                if sys.platform == "darwin":
+                    pyautogui.hotkey('command', 'w')
+                else:
+                    pyautogui.hotkey('ctrl', 'w')
                 return False
 
             elif decision["accion"] == "IGNORAR":
