@@ -9,6 +9,8 @@ import logger_manager
 import config_manager
 from server_g_k import app as server_app
 import updater
+import server_g_k
+import vigilance
 import wizard_cane
 import logging
 
@@ -39,13 +41,16 @@ def launch_gandalf_guard_threads(interface_window):
     # 4. Lanza el bucle de vigilancia en su Hilo (Daemon)
     threading.Thread(target=wizard_cane.infinite_surveillance_loop, daemon=True).start()
 
-    # 5. Lanza los backups periodizados
+    # 5. Centinela nativo de URLs
+    vigilance.start_browser_sentinel(server_g_k.dispatch_security_action)
+
+    # 6. Lanza los backups periodizados
     backup_scheduler.run_in_background()
 
-    # 6. Inicia la bandeja
+    # 7. Inicia la bandeja
     threading.Thread(target=tray_icon.start_tray, daemon=True).start()
 
-    # 7. Actualizador automatizado
+    # 8. Actualizador automatizado
     threading.Thread(target=infinite_updater_loop, args=(interface_window,), daemon=True).start()
 
 if __name__ == "__main__":
