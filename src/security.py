@@ -6,7 +6,7 @@ import pyautogui
 import time
 import ctypes
 import threading
-import gui_components
+import gui_popup
 import interface
 import logging
 

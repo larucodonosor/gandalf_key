@@ -5,7 +5,7 @@ from PIL import Image, ImageTk
 
 
 class DarkNotificationPopup:
-    def __init__(self, master=None, title="", heading="", description="", button_text="OK", callback_action="None", icon_name="g_logo_3", secondary_button_text=None, secondary_callback=None, is_alert=False):
+    def __init__(self, master=None, title="", heading="", description="", button_text="OK", callback_action=None, icon_name="g_logo_3", secondary_button_text=None, secondary_callback=None, is_alert=False):
         # Si no se pasa master, usa la raiz principal de Tkinter activa en la memoria
         if master is None:
             try:
@@ -108,15 +108,29 @@ class DarkNotificationPopup:
             self.btn_main.pack(anchor="center")
 
     def _on_submit(self):
-        if self.callback:
-            self.callback()
-        self.popup.destroy()
+        action = self.callback
 
+        #  Destruye primero la ventana modal del popup de forma segura
+        try:
+            if hasattr(self, 'popup') and self.popup.winfo_exists():
+                self.popup.destroy()
+        except Exception:
+            pass
+
+        # 3. Ejecuta la acción posterior (como top_window.destroy) sin colisiones
+        if callable(action):
+            action()
 
     def _on_secondary_submit(self):
-        if self.secondary_callback:
-            self.secondary_callback()
-        self.popup.destroy()
+        sec_action = self.secondary_callback
+        try:
+            if hasattr(self, 'popup') and self.popup.winfo_exists():
+                self.popup.destroy()
+        except Exception:
+            pass
+
+        if callable(sec_action):
+            sec_action()
 
     def show(self):
         self.popup.deiconify()

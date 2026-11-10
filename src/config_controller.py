@@ -1,8 +1,9 @@
 import tkinter as tk
 import keyring
+import os
 import config_manager
 import gui_utils
-import gui_components
+import gui_popup
 from components_UX.panel_backups import PanelBackups
 from components_UX.panel_apis import PanelAPIs
 from components_UX.panel_master_key import PanelMasterKey
@@ -11,14 +12,23 @@ from components_UX.panel_master_key import PanelMasterKey
 class ConfigController(tk.Tk):
     def __init__(self, is_setup_wizard=False, initial_section=None):
         super().__init__()
+        gui_utils.set_app_id("gandalf_key")
         self.title("Gandalf Control Center")
         self.geometry("500x700")
         self.is_setup_wizard = is_setup_wizard
         self.initial_section = initial_section
 
+        # Asignación explícita del icono a esta ventana Toplevel
+
+        try:
+            icon_path = gui_utils.get_resource_path(os.path.join("img", "g_logo_3.ico"))
+            self.iconbitmap(icon_path)
+        except Exception:
+            pass
+
         # El contenedor
         self.container = tk.Frame(self)
-        self.container.pack(fill="both", expand=True, padx=20, pady=20)
+        self.container.pack(fill="both", expand=True, padx=0, pady=0)
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
 
         gui_utils.deploy_context_menu(self)
@@ -38,16 +48,13 @@ class ConfigController(tk.Tk):
 
         # Enruta según el ID del menú contextual
         if section_id == 1:
-            tk.Label(self.container, text="🔑 Modificar Master Key", font=("Arial", 12, "bold")).pack(pady=10)
             self.current_panel = PanelMasterKey(self.container)
         elif section_id == 2:
-            tk.Label(self.container, text="🌐 Credenciales de APIs y Cloud", font=("Arial", 12, "bold")).pack(pady=10)
             self.current_panel = PanelAPIs(self.container)
         elif section_id == 3:
-            tk.Label(self.container, text="📊 Configuración de Backups", font=("Arial", 12, "bold")).pack(pady=10)
             self.current_panel = PanelBackups(self.container)
 
-        self.current_panel.pack(fill="both", expand=True, pady=10)
+        self.current_panel.pack(fill="both", expand=True, padx=0, pady=0)
 
         # Botón para guardar y salir o volver al menú global
         tk.Button(self.container, text="💾 Aplicar y Volver", command=self.save_specific_modification, bg="#231053",
@@ -60,7 +67,7 @@ class ConfigController(tk.Tk):
         if isinstance(self.current_panel, PanelMasterKey):
             if data.get("master_key") == data.get("confirm_key") and data.get("master_key"):
                 keyring.set_password("Gandalf_Guard", "MASTER_KEY", data["master_key"].strip())
-                popup = gui_components.DarkNotificationPopup(
+                popup = gui_popup.DarkNotificationPopup(
                     title="Gandalf_key — Configuración",
                     heading="¡Llave Maestra actualizada!",
                     description="La nueva clave de cifrado ha sido registrada con éxito.",
@@ -70,7 +77,7 @@ class ConfigController(tk.Tk):
                 popup.show()
             else:
                 # Error en coincidencia de claves
-                popup = gui_components.DarkNotificationPopup(
+                popup = gui_popup.DarkNotificationPopup(
                     title="Gandalf_key — Error",
                     heading="¡Atención!",
                     description="Las contraseñas introducidas no coinciden.",
@@ -86,7 +93,7 @@ class ConfigController(tk.Tk):
             keyring.set_password("Gandalf_Guard", "CHAT_ID", data.get("chat_id", "").strip())
             keyring.set_password("Gandalf_Guard", "GOOGLE_CLIENT_ID", data.get("google_client_id", "").strip())
             keyring.set_password("Gandalf_Guard", "GOOGLE_CLIENT_SECRET", data.get("google_client_secret", "").strip())
-            popup = gui_components.DarkNotificationPopup(
+            popup = gui_popup.DarkNotificationPopup(
                 title="Gandalf_key — Configuración",
                 heading="¡Credenciales Sincronizadas!",
                 description="Los tokens de APIs y accesos Cloud\nse han guardado con éxito.",
@@ -105,7 +112,7 @@ class ConfigController(tk.Tk):
                 }
             }
             config_manager.keep_config(config)
-            popup = gui_components.DarkNotificationPopup(
+            popup = gui_popup.DarkNotificationPopup(
                 title="Gandalf_key — Configuración",
                 heading="¡Periodización actualizada!",
                 description="La planificación de copias de seguridad\nha sido guardada con éxito.",
@@ -147,7 +154,7 @@ class ConfigController(tk.Tk):
 
             # Alerta campo vacío
             if not master_key:
-                popup = gui_components.DarkNotificationPopup(
+                popup = gui_popup.DarkNotificationPopup(
                     title="Gandalf_key — Configuración",
                     heading="¡Acción necesaria!",
                     description="La Master Key es obligatoria para inicializar el sistema.",
@@ -159,7 +166,7 @@ class ConfigController(tk.Tk):
 
             # Alerta contraseñas diferentes
             if master_key != confirm_key:
-                popup = gui_components.DarkNotificationPopup(
+                popup = gui_popup.DarkNotificationPopup(
                     title="Gandalf_key — Error",
                     heading="¡Fallo de verificación!",
                     description="Las contraseñas no coinciden.\nAsegúrate de escribir la misma contraseña en ambos campos.",
@@ -205,7 +212,7 @@ class ConfigController(tk.Tk):
         # Filtro de seguridad para la 'X' de la ventana
         # Si esta en el asistente inicial y NO hay una clave guardada en el sistema...
         if self.is_setup_wizard and not keyring.get_password("Gandalf_Guard", "MASTER_KEY"):
-            popup = gui_components.DarkNotificationPopup(
+            popup = gui_popup.DarkNotificationPopup(
                 title="Gandalf_key — Cierre Bloqueado",
                 heading="¡Acción Requerida!",
                 description="Debes configurar la Master Key obligatoriamente \nantes de cerrar el asistente.",
@@ -222,7 +229,7 @@ class ConfigController(tk.Tk):
 
     def finish_setup(self):
         # Lógica global de guardado
-        popup = gui_components.DarkNotificationPopup(
+        popup = gui_popup.DarkNotificationPopup(
             title="Gandalf_key — Configuración",
             heading="¡Instalación Completada con éxito!",
             description="La instalación ha concluido.\nGandalf está vigilando y protegiendo tus tesoros.",
