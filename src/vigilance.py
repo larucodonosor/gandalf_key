@@ -15,19 +15,21 @@ pending_actions = {}
 API_KEY = keyring.get_password('Gandalf_Guard', "VT_API_KEY")
 
 def analyze_url(url):
+    API_KEY = keyring.get_password('Gandalf_Guard', "VT_API_KEY")
     # Evalúa la peligrosidad de la URL.
 
     try:
-        if not API_KEY:
+        if not API_KEY or not API_KEY.strip():
             logger.warning("Intento de analizar URL sin API KEY.")
             return "ERROR", "No se encontró la API Key en el archivo .env"
             # VirusTotal necesita la URL en formato base64 sin relleno '='
+        API_KEY_clean = API_KEY.strip()
         url_id = base64.urlsafe_b64encode(url.encode()).decode().strip("=")
 
         endpoint = f"https://www.virustotal.com/api/v3/urls/{url_id}"
         headers = {
             "accept": "application/json",
-            "x-apikey": API_KEY
+            "x-apikey": API_KEY_clean
         }
 
         response = requests.get(endpoint, headers=headers, timeout=10)

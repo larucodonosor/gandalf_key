@@ -139,7 +139,10 @@ def run_analysis(url, modo="Auto"):
         prefix = "⚠️ AVISO"
 
     menssage = f"{modo}-Scan: {prefix}\n{report}"
-    canvas.itemconfig(result_text_id, text=menssage, fill=color)
+    # Actualización segura en el hilo de Tkinter
+    window.after(
+        0, lambda: canvas.itemconfig(result_text_id, text=menssage, fill=color)
+    )
 
 # VIGILANCIA EN SEGUNDO PLANO
 def background_monitor():
@@ -148,8 +151,13 @@ def background_monitor():
         detected_url = vigilance.get_browser_url()
         if detected_url and detected_url != last_url:
             last_url = detected_url
-            # Actualiza la interfaz de forma segura
-            window.after(0, lambda u=detected_url: run_analysis(u, modo="Auto"))
+            # Lanza el análisis en un hilo secundario
+            threading.Thread(
+                target=run_analysis,
+                args=(detected_url,),
+                kwargs={"modo": "Auto"},
+                daemon=True,
+            ).start()
         time.sleep(3)
 
 # CONFIGURACIÓN DE LA VENTANA
