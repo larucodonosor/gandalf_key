@@ -3,11 +3,11 @@ import tkinter as tk
 from PIL import ImageTk
 import keyring
 from gui_utils import get_resource_path, gandalf_gradient
-from gui_popup import DarkNotificationPopup
+import gui_popup
 
 
 class MasterKeyPrompt:
-    """Ventana modal de autenticación con gandalf_gradient, burbujas 🫧 y varita 🪄."""
+    # Ventana modal de autenticación con gandalf_gradient, burbujas 🫧 y varita 🪄.
     def __init__(self, master, on_success_callback):
         self.master = master
         self.on_success = on_success_callback
@@ -96,7 +96,7 @@ class MasterKeyPrompt:
             self.on_success()
         else:
             self.prompt.destroy()
-            alert = DarkNotificationPopup(
+            alert = gui_popup.DarkNotificationPopup(
                 master=self.master,
                 title="Acceso Denegado",
                 heading="¡Acceso Denegado!",
