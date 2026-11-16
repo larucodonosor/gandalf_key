@@ -6,7 +6,7 @@ import pyautogui
 import time
 import ctypes
 import threading
-import gui_components
+import gui_popup
 import interface
 import logging
 
@@ -105,7 +105,7 @@ def visual_warning(url, severity= "BLOQUEAR"):
             popup_closed.set()
 
         def throw_popup():
-            popup = gui_components.DarkNotificationPopup(
+            popup = gui_popup.DarkNotificationPopup(
                 interface.window,
                 title="Gandalf_key — Seguridad",
                 heading=heading,

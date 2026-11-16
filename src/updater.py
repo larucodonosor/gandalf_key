@@ -76,7 +76,7 @@ def check_for_updates_silently(root_window=None):
         logger.error(f"Error durante el chequeo automático de versión: {e}")
 
 def show_update_notification(new_version):
-    from gui_components import DarkNotificationPopup
+    from gui_popup import DarkNotificationPopup
 
     # Define el contenido específico para el éxito de la actualización
     heading = "¡Búnker Fortificado con Éxito!"
