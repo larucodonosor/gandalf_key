@@ -10,7 +10,7 @@ This document outlines the standard operational procedure for deploying an isola
 ## 2. Virtual Machine Configuration
 1. Create a new virtual instance, allocating a minimum of **4 GB RAM** and **2 vCPUs**.
 2. Mount the downloaded ISO image and proceed with a clean operating system installation.
-3. Once inside the OS, install the VirtualBox *Guest Additions* to enable screen synchronization and the bidirectional **Drag and Drop** feature.
+3. Once inside the OS, install the VirtualBox **Guest Additions** to enable screen synchronization and the bidirectional **Drag and Drop** feature.
 
 ## 3. Hardware Testing Protocol (USB Passthrough)
 To audit Gandalf's capability to intercept `WM_DEVICECHANGE` window messages or WMI passive ejection driver calls:

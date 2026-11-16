@@ -6,11 +6,12 @@
 - **DNA File Integrity:** Uses a dynamic sampling formula $(L^2 + 7)$ to extract unique byte signatures, combined with **SHA-256 hashing** to detect unauthorized modifications.
 - **Self-Healing Vault:** Automatically restores critical `.py` files from a hidden secure backup if an intrusive change is detected.
 - **Hardware Watchdog (V1.1.0):** Event-driven, sub-millisecond peripheral inspection. By hooking into the OS native messaging layer (`WM_DEVICECHANGE` via Win32 UI bindings), the sentinel intercepts physical storage attachments in $T \approx 0ms$, mitigating execution windows from rogue devices.
-- **Active Window Surveillance:** High-precision URL capture using `pygetwindow`, monitoring browser titles to intercept threats before they are executed.
+- **Native Multi-Browser Surveillance:** Cross-platform URL extraction using OS accessibility trees and native scripting (`uiautomation` on Windows with dedicated Firefox profile reading, `osascript` on macOS, and `xdotool` on Linux) to intercept malicious URLs directly from the address bar in real time.
 - **Real-Time Downloads Guard:** Integrated `watchdog` monitoring in the system's `Downloads` directory to intercept, isolate, and move suspicious extensions to pre-quarantine before user execution.
 
 ## 🛠️ New Architectural Implementations
-- **VirusTotal API v3 Integration:** Replaced legacy manual whitelists with a real-time connection to a global database of 70+ antivirus engines.
+- **Modular Canvas-Based UI Architecture:** Decoupled interface components (`PanelBackups`, `PanelMasterKey`, `PanelAPIs`, and `ActionButtons`) rendered over a unified `500x700` custom canvas (`gandalf_gradient`), paired with a dark modal notification system (`DarkNotificationPopup`) for non-blocking security alerts.
+- **VirusTotal API v3 Integration:** Real-time URL reputation analysis against 70+ antivirus engines with dynamic, per-request credential retrieval from the OS secure keyring.
 - **Interactive Telegram Command Center:** Implemented an asynchronous, bi-directional `callback_query_handler` using `InlineKeyboardMarkup`. It features byte-restricted callbacks (`short_name`) allowing remote users to trigger definitive quarantine or initiate local/cloud restorations.
 - **Hybrid Cloud Restoration (`cloud_vault`):** Connected an index-managed restoration pipeline linked to Google Drive, capable of downloading and decrypting missing payloads automatically via unique Drive IDs.
 - **Multi-Threaded Execution:** Implemented `threading` to run the "Visual Guard" and the "File Scanner" concurrently, ensuring the UI remains responsive ($T \approx 100ms$).
